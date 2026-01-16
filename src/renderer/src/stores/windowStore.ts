@@ -47,7 +47,7 @@ export const useWindowStore = defineStore('window', () => {
 
   // 子输入框配置 (插件模式下使用)
   const subInputPlaceholder = ref('搜索')
-  const subInputVisible = ref(true) // 子输入框是否可见
+  const subInputVisible = ref(false) // 子输入框是否可见（默认隐藏，调用 setSubInput 后显示）
 
   // 自动粘贴配置
   const autoPaste = ref<AutoPasteOption>('off')
@@ -106,8 +106,8 @@ export const useWindowStore = defineStore('window', () => {
         subInputVisible.value = plugin.subInputVisible
         console.log('更新子输入框可见性:', plugin.subInputVisible)
       } else {
-        // 默认显示
-        subInputVisible.value = true
+        // 默认隐藏（调用 setSubInput 后才显示）
+        subInputVisible.value = false
       }
 
       pluginLoading.value = true

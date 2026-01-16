@@ -94,7 +94,7 @@ class PluginManager {
             : '',
           path: pluginPath,
           subInputPlaceholder: cached.subInputPlaceholder || '搜索',
-          subInputVisible: cached.subInputVisible !== undefined ? cached.subInputVisible : true
+          subInputVisible: cached.subInputVisible !== undefined ? cached.subInputVisible : false // 默认隐藏
         })
 
         // 缓存视图已经加载完成，直接通知渲染进程加载完成
@@ -255,7 +255,7 @@ class PluginManager {
         name: pluginConfig.name,
         view: this.pluginView,
         subInputPlaceholder: '搜索', // 默认值
-        subInputVisible: true, // 默认显示子输入框
+        subInputVisible: false, // 默认隐藏子输入框（调用 setSubInput 后显示）
         logo: pluginConfig.logo ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href : '',
         isDevelopment: !!pluginInfoFromDB?.isDevelopment
       }

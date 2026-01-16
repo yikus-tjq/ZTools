@@ -97,6 +97,9 @@ export class PluginUIAPI {
         return false
       }
 
+      // 调用 setSubInput 时，显示输入框
+      targetWindow.webContents.send('update-sub-input-visible', true)
+
       targetWindow.webContents.send('update-sub-input-placeholder', {
         placeholder: placeholder || '搜索'
       })
@@ -104,6 +107,13 @@ export class PluginUIAPI {
       // 如果插件在主窗口，更新 pluginManager 的状态
       if (targetWindow === this.mainWindow) {
         this.pluginManager.setSubInputPlaceholder(placeholder || '搜索')
+        // 更新可见性状态
+        if (event) {
+          const pluginInfo = this.pluginManager.getPluginInfoByWebContents(event.sender)
+          if (pluginInfo) {
+            this.pluginManager.setSubInputVisible(pluginInfo.path, true)
+          }
+        }
       }
 
       console.log('设置子输入框 placeholder:', { placeholder, isFocus })
