@@ -19,7 +19,7 @@ asarUnpack:
   - resources/**
 win:
   executableName: ZTools
-  artifactName: ${name}-${version}-${arch}.${ext}
+  artifactName: ${name}-${version}-${os}-${arch}.${ext}
   target:
     - target: nsis
       arch:
@@ -28,7 +28,7 @@ win:
       arch:
         - x64
 nsis:
-  artifactName: ${name}-${version}-${arch}-setup.${ext}
+  artifactName: ${name}-${version}-${os}-${arch}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
@@ -50,9 +50,9 @@ mac:
       arch:
         - x64
         - arm64
-  artifactName: ${name}-${version}-${arch}.${ext}
+  artifactName: ${name}-${version}-${os}-${arch}.${ext}
 dmg:
-  artifactName: ${name}-${version}-${arch}.${ext}
+  artifactName: ${name}-${version}-${os}-${arch}.${ext}
 linux:
   target:
     - AppImage
@@ -61,7 +61,7 @@ linux:
   maintainer: electronjs.org
   category: Utility
 appImage:
-  artifactName: ${name}-${version}-${arch}.${ext}
+  artifactName: ${name}-${version}-${os}-${arch}.${ext}
 npmRebuild: false
 
 afterPack: ./build/afterPack.js
