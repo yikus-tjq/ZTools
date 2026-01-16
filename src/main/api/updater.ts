@@ -2,9 +2,9 @@ import { ipcMain, app, BrowserWindow } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
 import AdmZip from 'adm-zip'
-import { getLanzouDownloadLink, getLanzouFolderFileList } from '../utils/lanzou.js'
 import { downloadFile } from '../utils/download.js'
 import { spawn } from 'child_process'
+import yaml from 'yaml'
 
 /**
  * 更新路径配置
@@ -22,8 +22,7 @@ interface UpdatePaths {
  * 升级管理 API
  */
 export class UpdaterAPI {
-  private updateCheckUrl = 'https://ilt.lanzouu.com/b0pn8htad'
-  private updateCheckPwd = '1f8i'
+  private latestYmlUrl = 'https://github.com/ZToolsCenter/ZTools/releases/latest/download/latest.yml'
   private mainWindow: BrowserWindow | null = null
   private checkTimer: NodeJS.Timeout | null = null
   private downloadedUpdateInfo: any = null
@@ -120,23 +119,23 @@ export class UpdaterAPI {
    * 根据平台选择下载URL
    */
   private selectDownloadUrl(updateInfo: any): string {
-    const isMac = process.platform === 'darwin'
-    const isWin = process.platform === 'win32'
-    const isArm64 = process.arch === 'arm64'
+    // 直接使用 updateInfo 中的 downloadUrl
+    return updateInfo.downloadUrl
+  }
 
-    let downloadUrl = updateInfo.downloadUrl
+  /**
+   * 构建更新包下载 URL
+   * 格式: update-{platform}-{arch}-{version}.zip
+   * 例如: update-darwin-arm64-1.2.8.zip
+   */
+  private buildUpdateDownloadUrl(version: string): string {
+    const platform = process.platform // darwin, win32, linux
+    const arch = process.arch // x64, arm64
 
-    if (isWin && updateInfo.downloadUrlWin64) {
-      downloadUrl = updateInfo.downloadUrlWin64
-    } else if (isMac && isArm64 && updateInfo.downloadUrlMacArm) {
-      downloadUrl = updateInfo.downloadUrlMacArm
-    }
+    const fileName = `update-${platform}-${arch}-${version}.zip`
+    const baseUrl = 'https://github.com/ZToolsCenter/ZTools/releases/latest/download'
 
-    if (!downloadUrl) {
-      throw new Error(`未找到适配当前系统(${process.platform}-${process.arch})的下载地址`)
-    }
-
-    return downloadUrl
+    return `${baseUrl}/${fileName}`
   }
 
   /**
@@ -144,22 +143,20 @@ export class UpdaterAPI {
    */
   private async downloadAndExtractUpdate(updateInfo: any): Promise<any> {
     try {
-      // 1. 选择下载URL
+      // 1. 获取下载 URL（已经在 checkUpdate 中构建好了）
       const downloadUrl = this.selectDownloadUrl(updateInfo)
 
-      // 2. 获取真实下载链接
-      const realDownloadUrl = await getLanzouDownloadLink(downloadUrl)
+      console.log('下载更新包:', downloadUrl)
 
-      // 3. 下载更新包
+      // 2. 下载更新包
       const tempDir = path.join(app.getPath('userData'), 'ztools-update-pkg')
       await fs.mkdir(tempDir, { recursive: true })
       const tempZipPath = path.join(tempDir, `update-${Date.now()}.zip`)
       const extractPath = path.join(tempDir, `extracted-${Date.now()}`)
 
-      console.log('下载更新包...', realDownloadUrl)
-      await downloadFile(realDownloadUrl, tempZipPath)
+      await downloadFile(downloadUrl, tempZipPath)
 
-      // 4. 解压
+      // 3. 解压
       console.log('解压更新包...')
       await fs.mkdir(extractPath, { recursive: true })
 
@@ -174,19 +171,18 @@ export class UpdaterAPI {
         })
       })
 
-      // 5. 重命名 app.asar.tmp -> app.asar
+      // 4. 重命名 app.asar.tmp -> app.asar（如果存在）
       const appAsarTmp = path.join(extractPath, 'app.asar.tmp')
       const appAsar = path.join(extractPath, 'app.asar')
       try {
         await fs.access(appAsarTmp)
         await fs.rename(appAsarTmp, appAsar)
         console.log('成功重命名: app.asar.tmp -> app.asar')
-      } catch (e) {
-        console.log('未找到 app.asar.tmp，可能直接是 app.asar 或位置不同')
-        console.log(e)
+      } catch {
+        console.log('未找到 app.asar.tmp，可能直接是 app.asar')
       }
 
-      // 6. 删除 zip 文件节省空间
+      // 5. 删除 zip 文件节省空间
       try {
         await fs.unlink(tempZipPath)
       } catch (e) {
@@ -326,77 +322,57 @@ export class UpdaterAPI {
    */
   private async checkUpdate(): Promise<any> {
     try {
-      // 1. 获取文件列表
-      const fileList = await getLanzouFolderFileList(this.updateCheckUrl, this.updateCheckPwd)
-      if (!Array.isArray(fileList) || fileList.length === 0) {
-        throw new Error('更新文件列表为空')
-      }
+      console.log('开始检查更新...')
 
-      // 2. 查找最新的更新信息文件
-      // 格式: ztools_update_1.0.1.txt
-      let latestFile: any = null
-      let latestVersion = '0.0.0'
-      const versionRegex = /ztools_update_(\d+(\.\d+)*)\.txt/
-
-      for (const file of fileList) {
-        const match = file.name_all.match(versionRegex)
-        if (match) {
-          const version = match[1]
-          if (this.compareVersions(version, latestVersion) > 0) {
-            latestVersion = version
-            latestFile = file
-          }
-        }
-      }
-
-      if (!latestFile) {
-        console.log('没有找到更新文件')
-        // 没有找到更新文件
-        return { hasUpdate: false }
-      }
-
-      // 3. 比较当前版本
-      const currentVersion = app.getVersion()
-      if (this.compareVersions(latestVersion, currentVersion) <= 0) {
-        return { hasUpdate: false, latestVersion, currentVersion }
-      }
-
-      console.log(`发现新版本: ${latestVersion}, 当前版本: ${currentVersion}`)
-
-      // 4. 下载并解析更新信息
-      const filePageUrl = 'https://ilt.lanzouu.com/' + latestFile.id
-      const downloadLink = await getLanzouDownloadLink(filePageUrl)
-
+      // 1. 下载 latest.yml 文件
       const tempDir = path.join(app.getPath('userData'), 'ztools-update-check')
       await fs.mkdir(tempDir, { recursive: true })
-      const tempFilePath = path.join(tempDir, `update-info-${Date.now()}.json`)
+      const tempFilePath = path.join(tempDir, `latest-${Date.now()}.yml`)
 
       try {
-        await downloadFile(downloadLink, tempFilePath)
-        const content = await fs.readFile(tempFilePath, 'utf-8')
-        // Lanzou text files might have BOM or weird encoding, but usually utf8 is fine
-        // Sometimes JSON might be malformed if uploaded as txt, but we assume it's valid JSON content
-        const updateInfo = JSON.parse(content)
+        console.log('下载 latest.yml:', this.latestYmlUrl)
+        await downloadFile(this.latestYmlUrl, tempFilePath)
 
-        // 确保包含必要字段
-        const hasDownloadUrl =
-          updateInfo.downloadUrl || updateInfo.downloadUrlWin64 || updateInfo.downloadUrlMacArm
-        if (!updateInfo.version || !hasDownloadUrl) {
-          throw new Error('更新信息格式错误')
+        // 2. 解析 YAML 文件
+        const content = await fs.readFile(tempFilePath, 'utf-8')
+        const updateInfo = yaml.parse(content)
+
+        if (!updateInfo.version) {
+          throw new Error('latest.yml 格式错误：缺少 version 字段')
         }
+
+        const latestVersion = updateInfo.version
+        const currentVersion = app.getVersion()
+
+        console.log(`当前版本: ${currentVersion}, 最新版本: ${latestVersion}`)
+
+        // 3. 比较版本号
+        if (this.compareVersions(latestVersion, currentVersion) <= 0) {
+          console.log('当前已是最新版本')
+          return { hasUpdate: false, latestVersion, currentVersion }
+        }
+
+        console.log(`发现新版本: ${latestVersion}`)
+
+        // 4. 构建下载 URL
+        const downloadUrl = this.buildUpdateDownloadUrl(latestVersion)
 
         return {
           hasUpdate: true,
           currentVersion,
           latestVersion,
-          updateInfo
+          updateInfo: {
+            version: latestVersion,
+            changelog: updateInfo.changelog || '',
+            downloadUrl
+          }
         }
       } finally {
         // 清理临时文件
         try {
           await fs.rm(tempDir, { recursive: true, force: true })
         } catch (e) {
-          console.error(e)
+          console.error('清理临时文件失败:', e)
         }
       }
     } catch (error: unknown) {
