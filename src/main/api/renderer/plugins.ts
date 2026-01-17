@@ -8,7 +8,6 @@ import { isInternalPlugin } from '../../core/internalPlugins'
 import lmdbInstance from '../../core/lmdb/lmdbInstance'
 import { sleep } from '../../utils/common.js'
 import { downloadFile } from '../../utils/download.js'
-import { getLanzouDownloadLink, getLanzouFolderFileList } from '../../utils/lanzou.js'
 import { pluginFeatureAPI } from '../plugin/feature'
 import databaseAPI from '../shared/database'
 
@@ -202,6 +201,7 @@ export class PluginsAPI {
       // 保存到数据库
       const pluginInfo = {
         name: pluginConfig.name,
+        title: pluginConfig.title,
         version: pluginConfig.version,
         description: pluginConfig.description || '',
         logo: pluginConfig.logo ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href : '',
@@ -517,75 +517,45 @@ export class PluginsAPI {
   // 获取插件市场列表
   private async fetchPluginMarket(): Promise<any> {
     try {
-      const folderUrl = 'https://ilt.lanzouu.com/b0pn75v9g'
-      const password = '5w87'
+      // 从 GitHub Releases 获取 plugins.json
+      const pluginsJsonUrl =
+        'https://github.com/ZToolsCenter/ZTools-plugins/releases/latest/download/plugins.json'
+      const latestVersionUrl =
+        'https://github.com/ZToolsCenter/ZTools-plugins/releases/latest/download/latest'
 
-      const fileList = await getLanzouFolderFileList(folderUrl, password)
-      if (!Array.isArray(fileList) || fileList.length === 0) {
-        throw new Error('插件市场文件列表为空')
-      }
+      console.log('从 GitHub Releases 获取插件市场列表...')
 
-      let latestFile: any = null
-      let latestVersion = '0.0.0'
-      const versionRegex = /plugins_(\d+(\.\d+)*)\.txt/
-
-      for (const file of fileList) {
-        const match = file.name_all.match(versionRegex)
-        if (match) {
-          const version = match[1]
-          if (this.compareVersions(version, latestVersion) > 0) {
-            latestVersion = version
-            latestFile = file
-          }
+      // 获取最新版本号（格式：2026.01.17.1337）
+      let latestVersion = ''
+      try {
+        const versionResponse = await fetch(latestVersionUrl)
+        if (versionResponse.ok) {
+          latestVersion = (await versionResponse.text()).trim()
+          console.log(`发现最新插件列表版本: ${latestVersion}`)
         }
+      } catch (error) {
+        console.warn('获取版本号失败，将强制更新:', error)
       }
 
-      if (!latestFile) {
-        throw new Error('未找到有效的插件列表文件')
-      }
-
-      console.log(`发现最新插件列表版本: ${latestVersion}, 文件: ${latestFile.name_all}`)
-
+      // 检查缓存
       const cachedVersion = await databaseAPI.dbGet('plugin-market-version')
       const cachedData = await databaseAPI.dbGet('plugin-market-data')
 
-      if (cachedVersion === latestVersion && cachedData) {
+      if (cachedVersion === latestVersion && cachedData && latestVersion) {
         console.log('使用本地缓存的插件市场列表')
         return { success: true, data: cachedData }
       }
 
+      // 下载 plugins.json
       console.log('下载新版本插件列表...')
-      const filePageUrl = 'https://ilt.lanzouu.com/' + latestFile.id
-      const downloadLink = await getLanzouDownloadLink(filePageUrl)
-
-      const tempDir = path.join(app.getPath('temp'), 'ztools-plugin-market')
-      await fs.mkdir(tempDir, { recursive: true })
-      const tempFilePath = path.join(tempDir, `plugins-${Date.now()}.json`)
-
-      let retryCount = 0
-      const maxRetries = 3
-      while (retryCount < maxRetries) {
-        try {
-          await downloadFile(downloadLink, tempFilePath)
-          break
-        } catch (error) {
-          retryCount++
-          console.error(`下载失败，重试第 ${retryCount} 次:`, error)
-          if (retryCount >= maxRetries) throw error
-          await sleep(500)
-        }
+      const response = await fetch(pluginsJsonUrl)
+      if (!response.ok) {
+        throw new Error(`下载失败: ${response.status} ${response.statusText}`)
       }
 
-      const fileContent = await fs.readFile(tempFilePath, 'utf-8')
-      const json = JSON.parse(fileContent)
+      const json = await response.json()
 
-      try {
-        await fs.unlink(tempFilePath)
-        await fs.rm(tempDir, { recursive: true, force: true })
-      } catch (e) {
-        console.error('清理临时文件失败:', e)
-      }
-
+      // 保存到缓存
       await databaseAPI.dbPut('plugin-market-version', latestVersion)
       await databaseAPI.dbPut('plugin-market-data', json)
 
@@ -605,19 +575,6 @@ export class PluginsAPI {
     }
   }
 
-  private compareVersions(v1: string, v2: string): number {
-    const parts1 = v1.split('.').map(Number)
-    const parts2 = v2.split('.').map(Number)
-
-    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-      const p1 = parts1[i] || 0
-      const p2 = parts2[i] || 0
-      if (p1 > p2) return 1
-      if (p1 < p2) return -1
-    }
-    return 0
-  }
-
   // 从市场安装插件
   private async installPluginFromMarket(plugin: any): Promise<any> {
     try {
@@ -627,8 +584,7 @@ export class PluginsAPI {
         return { success: false, error: '无效的下载链接' }
       }
 
-      const realDownloadUrl = await getLanzouDownloadLink(downloadUrl)
-      console.log('插件真实下载链接:', realDownloadUrl)
+      console.log('插件下载链接:', downloadUrl)
 
       const tempDir = path.join(app.getPath('temp'), 'ztools-plugin-download')
       await fs.mkdir(tempDir, { recursive: true })
@@ -638,7 +594,7 @@ export class PluginsAPI {
       const maxRetries = 3
       while (retryCount < maxRetries) {
         try {
-          await downloadFile(realDownloadUrl, tempFilePath)
+          await downloadFile(downloadUrl, tempFilePath)
           break
         } catch (error) {
           retryCount++

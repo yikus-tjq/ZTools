@@ -24,7 +24,7 @@
               />
             </div>
             <div class="plugin-info">
-              <div class="plugin-name">{{ plugin.name }}</div>
+              <div class="plugin-name">{{ plugin.title || plugin.name }}</div>
               <div class="plugin-description" :title="plugin.description">
                 {{ plugin.description }}
               </div>
@@ -130,10 +130,11 @@ import AdaptiveIcon from '../common/AdaptiveIcon.vue'
 import PluginDetail from './PluginDetail.vue'
 import { useToast } from '../../composables/useToast'
 
-const { success, error, warning, info, confirm } = useToast()
+const { success, error, confirm } = useToast()
 
 interface Plugin {
   name: string
+  title: string
   description: string
   iconText?: string
   iconColor?: string
@@ -215,7 +216,7 @@ async function handleOpenPlugin(plugin: Plugin): Promise<void> {
     const result = await window.ztools.internal.launch({
       path: plugin.path,
       type: 'plugin',
-      name: plugin.name, // 传递插件名称
+      name: plugin.title || plugin.name, // 传递插件名称
       param: {}
     })
 

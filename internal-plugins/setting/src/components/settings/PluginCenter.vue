@@ -34,7 +34,7 @@
 
             <div class="plugin-info">
               <div class="plugin-name">
-                {{ plugin.name }}
+                {{ plugin.title || plugin.name }}
                 <span class="plugin-version">v{{ plugin.version }}</span>
                 <span v-if="plugin.isDevelopment" class="dev-badge">开发中</span>
               </div>
@@ -189,7 +189,7 @@ import Icon from '../common/Icon.vue'
 import PluginDetail from './PluginDetail.vue'
 import { useToast } from '../../composables/useToast'
 
-const { success, error, warning, info, confirm } = useToast()
+const { success, error, confirm } = useToast()
 
 // 插件相关状态
 const plugins = ref<any[]>([])
@@ -366,7 +366,7 @@ async function handleOpenPlugin(plugin: any): Promise<void> {
     const result = await window.ztools.internal.launch({
       path: plugin.path,
       type: 'plugin',
-      name: plugin.name, // 传递插件名称
+      name: plugin.title || plugin.name, // 传递插件名称
       param: {}
     })
 

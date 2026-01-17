@@ -15,7 +15,7 @@
           <div v-else class="detail-icon placeholder">🧩</div>
           <div class="detail-info">
             <div class="detail-title">
-              <span class="detail-name">{{ plugin.name }}</span>
+              <span class="detail-name">{{ plugin.title || plugin.name }}</span>
               <span class="detail-version">v{{ plugin.version }}</span>
             </div>
             <div class="detail-desc">{{ plugin.description || '暂无描述' }}</div>
@@ -223,6 +223,7 @@ interface PluginFeature {
 
 interface PluginItem {
   name: string
+  title: string
   version?: string
   description?: string
   logo?: string
