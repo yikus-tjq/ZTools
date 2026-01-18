@@ -130,6 +130,7 @@ class DetachedWindowManager {
       searchQuery?: string // 搜索框当前值
       searchPlaceholder?: string // 搜索框占位符
       subInputVisible?: boolean // 子输入框是否可见
+      autoFocusSubInput?: boolean // 是否自动聚焦子输入框
     }
   ): BrowserWindow | null {
     try {
@@ -212,6 +213,13 @@ class DetachedWindowManager {
           height: bounds.height - DETACHED_TITLEBAR_HEIGHT
         })
         win.contentView.addChildView(pluginView)
+
+        // 如果需要自动聚焦子输入框，延迟聚焦搜索框（等待 DOM 渲染完成）
+        if (options.autoFocusSubInput === true) {
+          setTimeout(() => {
+            win.webContents.send('focus-sub-input')
+          }, 100) // 延迟 100ms，确保 Vue 组件已经渲染
+        }
       })
 
       // 监听窗口大小变化

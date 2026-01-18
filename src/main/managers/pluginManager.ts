@@ -943,6 +943,23 @@ class PluginManager {
         cached.view.webContents.send('plugin-detach')
       }
 
+      // 检测主窗口是否处于焦点状态，且输入框是否处于聚焦状态
+      let shouldAutoFocusSubInput = false
+      try {
+        const isMainWindowFocused = this.mainWindow.webContents.isFocused()
+        const isInputFocused = await this.mainWindow.webContents.executeJavaScript(
+          'document.activeElement?.classList.contains("search-input")'
+        )
+        shouldAutoFocusSubInput = isMainWindowFocused && isInputFocused
+        console.log('主窗口聚焦状态:', {
+          windowFocused: isMainWindowFocused,
+          inputFocused: isInputFocused,
+          shouldAutoFocus: shouldAutoFocusSubInput
+        })
+      } catch (error) {
+        console.error('检测输入框聚焦状态失败:', error)
+      }
+
       // 使用新的分离窗口管理器创建窗口（使用缓存的搜索框状态）
       const detachedWindow = detachedWindowManager.createDetachedWindow(
         this.currentPluginPath,
@@ -955,7 +972,8 @@ class PluginManager {
           logo: cached.logo,
           searchQuery: cached.subInputValue || '',
           searchPlaceholder: cached.subInputPlaceholder || '搜索...',
-          subInputVisible: cached.subInputVisible !== undefined ? cached.subInputVisible : true
+          subInputVisible: cached.subInputVisible !== undefined ? cached.subInputVisible : true,
+          autoFocusSubInput: shouldAutoFocusSubInput // 只有主窗口输入框聚焦时才自动聚焦
         }
       )
 
