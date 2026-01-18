@@ -119,7 +119,8 @@ ZTools provides a built-in plugin market for easy browsing and installation:
 
 **Technical Implementation**:
 
-- Plugins hosted on Lanzou Cloud (`https://ilt.lanzouu.com/b0pn75v9g`), password: `5w87`
+- Plugins hosted on GitHub Releases ([ZTools-plugins](https://github.com/ZToolsCenter/ZTools-plugins/releases))
+- Plugin list: Fetched from `plugins.json` file for plugin information and download links
 - Plugin package format: ZIP archive containing `plugin.json` and plugin files
 - Version comparison: Automatically compare local and market versions (semantic versioning)
 - Upgrade strategy: Uninstall old version first, then install new version
@@ -137,18 +138,21 @@ ZTools supports one-click in-app updates without manual download:
 
 **Technical Implementation**:
 
-- Update source: Lanzou Cloud (`https://ilt.lanzouu.com/b0pn8htad`), password: `1f8i`
-- Update info file: `ztools_update_x.x.x.txt` (JSON format)
-- Update package format: ZIP archive containing new version's `app.asar` file
+- Update source: GitHub Releases ([ZTools](https://github.com/ZToolsCenter/ZTools/releases))
+- Update info file: `latest.yml` (contains version number, changelog, etc.)
+- Update package format: ZIP archive with naming format `update-{platform}-{arch}-{version}.zip`
+  - Example: `update-darwin-arm64-1.2.8.zip` (macOS Apple Silicon)
+  - Example: `update-win32-x64-1.2.8.zip` (Windows x64)
 - Updater program: Independent `ztools-updater` executable
   - macOS: `ztools-updater` (located in Contents/MacOS/)
   - Windows: `ztools-agent.exe` (located in app root directory)
 - Update flow:
-  1. Download and extract update package
-  2. Launch independent updater program
-  3. App exits
-  4. Updater replaces `app.asar` file
-  5. Automatically restarts app
+  1. Download `latest.yml` from GitHub Releases to get latest version info
+  2. Download update package for the corresponding platform
+  3. Extract and launch independent updater program
+  4. App exits
+  5. Updater replaces `app.asar` file
+  6. Automatically restarts app
 
 **Platform Support**:
 

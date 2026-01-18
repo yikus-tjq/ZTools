@@ -119,7 +119,8 @@ ZTools 提供内置的插件市场，可以方便地浏览和安装插件：
 
 **技术实现**：
 
-- 插件托管在蓝奏云（`https://ilt.lanzouu.com/b0pn75v9g`），密码：`5w87`
+- 插件托管在 GitHub Releases（[ZTools-plugins](https://github.com/ZToolsCenter/ZTools-plugins/releases)）
+- 插件列表：从 `plugins.json` 文件获取插件信息和下载链接
 - 插件包格式：ZIP 压缩包，包含 `plugin.json` 和插件文件
 - 版本比较：自动对比本地版本和市场版本（语义化版本号）
 - 升级策略：先卸载旧版本，再安装新版本
@@ -137,18 +138,21 @@ ZTools 支持应用内一键更新，无需手动下载安装包：
 
 **技术实现**：
 
-- 更新源：蓝奏云（`https://ilt.lanzouu.com/b0pn8htad`），密码：`1f8i`
-- 更新信息文件：`ztools_update_x.x.x.txt`（JSON 格式）
-- 更新包格式：ZIP 压缩包，包含新版本的 `app.asar` 文件
+- 更新源：GitHub Releases（[ZTools](https://github.com/ZToolsCenter/ZTools/releases)）
+- 更新信息文件：`latest.yml`（包含版本号、更新日志等）
+- 更新包格式：ZIP 压缩包，命名格式为 `update-{platform}-{arch}-{version}.zip`
+  - 示例：`update-darwin-arm64-1.2.8.zip`（macOS Apple Silicon）
+  - 示例：`update-win32-x64-1.2.8.zip`（Windows x64）
 - 更新程序：独立的 `ztools-updater` 可执行文件
   - macOS: `ztools-updater`（位于 Contents/MacOS/）
   - Windows: `ztools-agent.exe`（位于应用根目录）
 - 更新流程：
-  1. 下载并解压更新包
-  2. 启动独立的 updater 程序
-  3. 应用退出
-  4. updater 替换 `app.asar` 文件
-  5. 自动重启应用
+  1. 从 GitHub Releases 下载 `latest.yml` 获取最新版本信息
+  2. 下载对应平台的更新包
+  3. 解压并启动独立的 updater 程序
+  4. 应用退出
+  5. updater 替换 `app.asar` 文件
+  6. 自动重启应用
 
 **平台支持**：
 
