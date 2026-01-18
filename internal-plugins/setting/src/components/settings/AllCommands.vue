@@ -69,7 +69,7 @@
             draggable="false"
           />
           <span v-else class="source-icon">🧩</span>
-          <span class="source-name">{{ plugin.name }}</span>
+          <span class="source-name">{{ plugin.title || plugin.name }}</span>
           <span class="source-badge">{{ getPluginCommandCount(plugin) }}</span>
         </div>
       </div>
@@ -202,7 +202,7 @@ const selectedSource = ref<Source | null>(null)
 const activeTab = ref<'text' | 'match'>('text')
 
 // 内置插件名称列表（与主进程保持一致）
-const INTERNAL_PLUGIN_NAMES = ['setting']
+const INTERNAL_PLUGIN_NAMES = ['setting', 'system']
 
 // 判断是否为内置插件
 function isInternalPlugin(pluginName: string): boolean {
@@ -385,8 +385,8 @@ function selectSource(source: Source): void {
 onMounted(async () => {
   // 加载指令数据
   await loadCommands()
-  // 加载插件列表
-  plugins.value = await window.ztools.internal.getPlugins()
+  // 加载插件列表（包括内置插件）
+  plugins.value = await window.ztools.internal.getAllPlugins()
   // 默认选中系统应用
   if (appCount.value > 0) {
     selectSource({ subType: 'app', name: '系统应用' })

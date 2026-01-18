@@ -29,6 +29,7 @@ export class PluginsAPI {
 
   private setupIPC(): void {
     ipcMain.handle('get-plugins', () => this.getPlugins())
+    ipcMain.handle('get-all-plugins', () => this.getAllPlugins())
     ipcMain.handle('import-plugin', () => this.importPlugin())
     ipcMain.handle('import-dev-plugin', () => this.importDevPlugin())
     ipcMain.handle('delete-plugin', (_event, pluginPath: string) => this.deletePlugin(pluginPath))
@@ -66,8 +67,15 @@ export class PluginsAPI {
     )
   }
 
-  // 获取插件列表
+  // 获取插件列表（过滤掉内置插件，用于插件中心显示）
   public async getPlugins(): Promise<any[]> {
+    const allPlugins = await this.getAllPlugins()
+    // 过滤掉所有内置插件（system、setting 等）
+    return allPlugins.filter((plugin: any) => !isInternalPlugin(plugin.name))
+  }
+
+  // 获取所有插件列表（包括 system 插件，用于生成搜索指令）
+  public async getAllPlugins(): Promise<any[]> {
     try {
       const data = await databaseAPI.dbGet('plugins')
       const plugins = data || []

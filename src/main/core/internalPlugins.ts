@@ -5,7 +5,7 @@ import path from 'path'
  * 内置插件名称列表
  * 通过插件名称判断是否为内置插件，不需要额外的 internal 字段
  */
-export const INTERNAL_PLUGIN_NAMES = ['setting'] as const
+export const INTERNAL_PLUGIN_NAMES = ['setting', 'system'] as const
 
 export type InternalPluginName = (typeof INTERNAL_PLUGIN_NAMES)[number]
 

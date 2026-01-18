@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/@ztools-center/ztools-api-types/resource/ztools.schema.json",
+  "name": "system",
+  "description": "ZTools 系统内置插件",
+  "author": "Zing",
+  "version": "1.0.0",
+  "logo": "clear.png",
+  "features": [
+    {
+      "code": "clear",
+      "explain": "停止所有插件",
+      "icon": "clear.png",
+      "cmds": ["Clear", "停止所有插件"]
+    },
+    {
+      "code": "reboot",
+      "explain": "重启",
+      "icon": "reboot.png",
+      "cmds": ["Reboot", "重启"]
+    },
+    {
+      "code": "shutdown",
+      "explain": "关机",
+      "icon": "shutdown.png",
+      "cmds": ["Shutdown", "关机"]
+    },
+    {
+      "code": "sleep",
+      "explain": "睡眠",
+      "icon": "sleep.png",
+      "cmds": ["Sleep", "睡眠"]
+    }
+  ]
+}

@@ -66,6 +66,7 @@ declare global {
       revealInFinder: (filePath: string) => Promise<void>
       showContextMenu: (menuItems: any[]) => Promise<void>
       getPlugins: () => Promise<any[]>
+      getAllPlugins: () => Promise<any[]>
       importPlugin: () => Promise<{ success: boolean; error?: string }>
       importDevPlugin: () => Promise<{ success: boolean; error?: string }>
       fetchPluginMarket: () => Promise<{ success: boolean; data?: any; error?: string }>

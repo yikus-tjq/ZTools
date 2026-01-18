@@ -1,8 +1,6 @@
 import { app, ipcMain, shell } from 'electron'
 import { promises as fs } from 'fs'
 import path from 'path'
-import { pathToFileURL } from 'url'
-import clearIcon from '../../../../resources/icons/clear.png?asset'
 import { normalizeIconPath } from '../../common/iconUtils'
 import { launchApp, type ConfirmDialogOptions } from '../../core/commandLauncher'
 import { scanApplications } from '../../core/commandScanner'
@@ -145,27 +143,15 @@ export class AppsAPI {
     // 注意：windowsScanner 已经在扫描时生成了 ztools-icon:// 协议 URL
     // 不需要再进行图标提取或文件转换，直接使用扫描结果即可
 
-    // 添加 Clear 内置指令（插入到最前面）
-    const clearCommand = {
-      name: 'Clear',
-      path: 'builtin:clear',
-      icon: pathToFileURL(clearIcon).href,
-      type: 'builtin',
-      subType: 'clear'
-    }
-
-    // 将 clear 指令插入到最前面
-    const allApps = [clearCommand, ...apps]
-
     // 保存到数据库缓存
     try {
-      await databaseAPI.dbPut('cached-commands', allApps)
+      await databaseAPI.dbPut('cached-commands', apps)
       console.log('应用列表已缓存到数据库')
     } catch (error) {
       console.error('缓存应用列表失败:', error)
     }
 
-    return allApps
+    return apps
   }
 
   /**
@@ -206,27 +192,31 @@ export class AppsAPI {
     this.launchParam = param || {}
 
     try {
-      // 处理 Clear 内置指令
-      if (appPath === 'builtin:clear') {
-        console.log('执行 Clear 指令：停止所有插件')
+      // 优先处理 system 插件（特殊的内置插件）
+      if (type === 'plugin') {
+        try {
+          const pluginJsonPath = path.join(appPath, 'plugin.json')
+          const pluginConfig = JSON.parse(await fs.readFile(pluginJsonPath, 'utf-8'))
 
-        // 停止所有正在运行的插件
-        if (this.pluginManager) {
-          this.pluginManager.killAllPlugins()
+          if (pluginConfig.name === 'system') {
+            console.log('检测到 system 插件，执行系统命令:', featureCode)
+
+            // 添加到历史记录
+            await this.addToHistory({
+              path: appPath,
+              type,
+              featureCode,
+              name: name || featureCode,
+              cmdType: cmdType || 'text'
+            })
+
+            // 执行系统命令
+            return await this.executeSystemCommand(featureCode || '')
+          }
+        } catch (error) {
+          console.error('检查 system 插件失败:', error)
+          // 如果读取 plugin.json 失败，继续正常流程
         }
-
-        // 添加到历史记录
-        await this.addToHistory({
-          path: appPath,
-          type: 'builtin',
-          name: name || 'Clear',
-          cmdType: 'text'
-        })
-
-        // 通知渲染进程清空搜索框等
-        this.mainWindow?.webContents.send('app-launched')
-
-        return { success: true }
       }
 
       // 判断是插件还是直接启动
@@ -843,8 +833,8 @@ export class AppsAPI {
     try {
       const rawApps = await this.getApps()
 
-      // 调用 pluginsAPI 获取插件列表（已经过路径标准化处理）
-      const plugins = await pluginsAPI.getPlugins()
+      // 调用 pluginsAPI 获取所有插件列表（包括 system 插件）
+      const plugins = await pluginsAPI.getAllPlugins()
 
       const commands: any[] = []
       const regexCommands: any[] = []
@@ -919,6 +909,84 @@ export class AppsAPI {
     } catch (error) {
       console.error('获取指令列表失败:', error)
       return { commands: [], regexCommands: [] }
+    }
+  }
+
+  /**
+   * 执行系统命令（system 插件专用）
+   */
+  private async executeSystemCommand(command: string): Promise<any> {
+    const { exec } = await import('child_process')
+    const { promisify } = await import('util')
+    const execAsync = promisify(exec)
+
+    const platform = process.platform
+
+    let cmd = ''
+
+    switch (command) {
+      case 'clear':
+        // 停止所有插件
+        console.log('执行 Clear 指令：停止所有插件')
+        if (this.pluginManager) {
+          this.pluginManager.killAllPlugins()
+        }
+        // 通知渲染进程清空搜索框等
+        this.mainWindow?.webContents.send('app-launched')
+        return { success: true }
+
+      case 'reboot':
+        if (platform === 'darwin') {
+          cmd = 'osascript -e "tell application \\"System Events\\" to restart"'
+        } else if (platform === 'win32') {
+          cmd = 'shutdown /r /t 0'
+        }
+        break
+
+      case 'shutdown':
+        if (platform === 'darwin') {
+          cmd = 'osascript -e "tell application \\"System Events\\" to shut down"'
+        } else if (platform === 'win32') {
+          cmd = 'shutdown /s /t 0'
+        }
+        break
+
+      case 'sleep':
+        if (platform === 'darwin') {
+          cmd = 'osascript -e "tell application \\"System Events\\" to sleep"'
+        } else if (platform === 'win32') {
+          cmd = 'rundll32.exe powrprof.dll,SetSuspendState 0,1,0'
+        }
+        break
+
+      default:
+        return { success: false, error: `Unknown system command: ${command}` }
+    }
+
+    if (!cmd) {
+      return { success: false, error: `Unsupported platform: ${platform}` }
+    }
+
+    console.log('执行系统命令:', cmd)
+
+    try {
+      const { stdout, stderr } = await execAsync(cmd)
+
+      if (stderr) {
+        console.error('系统命令错误输出:', stderr)
+      }
+      if (stdout) {
+        console.log('系统命令输出:', stdout)
+      }
+
+      // 通知渲染进程并隐藏主窗口
+      this.mainWindow?.webContents.send('app-launched')
+      this.mainWindow?.hide()
+
+      return { success: true }
+    } catch (error) {
+      console.error('执行系统命令失败:', error)
+      return { success: false, error: String(error) }
     }
   }
 }

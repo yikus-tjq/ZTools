@@ -665,7 +665,7 @@ class PluginManager {
     console.log('调用无界面插件方法:', { pluginPath, featureCode, action })
 
     // 生成唯一的调用 ID
-    const callId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const callId = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
 
     // 创建 Promise 等待结果
     return new Promise((resolve, reject) => {

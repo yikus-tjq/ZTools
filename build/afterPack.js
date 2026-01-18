@@ -175,7 +175,7 @@ module.exports = async function (context) {
   // 复制内置插件
   console.log('\n开始复制内置插件...')
   const internalPluginsDir = path.resolve(__dirname, '../internal-plugins')
-  const pluginNames = ['setting'] // 内置插件列表
+  const pluginNames = ['setting', 'system'] // 内置插件列表
 
   try {
     let resourcesPath = ''
@@ -197,7 +197,7 @@ module.exports = async function (context) {
       // 确保目标目录存在
       await fs.ensureDir(pluginDestDir)
 
-      // 复制 dist 目录（构建产物，包含 plugin.json, logo, preload 等）
+      // 优先复制 dist 目录（需要编译的插件，如 setting）
       const distSrc = path.join(pluginSrcDir, 'dist')
       if (await fs.pathExists(distSrc)) {
         const files = await fs.readdir(distSrc)
@@ -208,8 +208,21 @@ module.exports = async function (context) {
         }
         console.log(`  已复制 dist/ 目录内容到: ${pluginDestDir}`)
       } else {
-        console.error(`  ⚠️  未找到 dist 目录: ${distSrc}`)
-        console.error(`  请先运行: pnpm build:setting`)
+        // 如果没有 dist 目录，复制 public 目录（无界面插件，如 system）
+        const publicSrc = path.join(pluginSrcDir, 'public')
+        if (await fs.pathExists(publicSrc)) {
+          const files = await fs.readdir(publicSrc)
+          for (const file of files) {
+            const src = path.join(publicSrc, file)
+            const dest = path.join(pluginDestDir, file)
+            await fs.copy(src, dest)
+          }
+          console.log(`  已复制 public/ 目录内容到: ${pluginDestDir}`)
+        } else {
+          console.error(`  ⚠️  未找到 dist 或 public 目录: ${pluginSrcDir}`)
+          console.error(`  请确认插件 ${pluginName} 的目录结构`)
+          throw new Error(`插件 ${pluginName} 缺少必要的文件`)
+        }
       }
 
       console.log(`  ✅ 插件 ${pluginName} 复制完成`)

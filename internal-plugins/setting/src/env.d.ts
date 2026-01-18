@@ -38,6 +38,17 @@ declare global {
             isDevelopment?: boolean
           }>
         >
+        getAllPlugins: () => Promise<
+          Array<{
+            name: string
+            path: string
+            version: string
+            description?: string
+            logo?: string
+            features?: any[]
+            isDevelopment?: boolean
+          }>
+        >
         getRunningPlugins: () => Promise<string[]>
         importPlugin: () => Promise<{ success: boolean; error?: string }>
         importDevPlugin: () => Promise<{ success: boolean; error?: string }>

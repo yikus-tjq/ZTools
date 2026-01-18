@@ -45,6 +45,7 @@ const api = {
   revealInFinder: (filePath: string) => ipcRenderer.invoke('reveal-in-finder', filePath),
   showContextMenu: (menuItems: any[]) => ipcRenderer.invoke('show-context-menu', menuItems),
   getPlugins: () => ipcRenderer.invoke('get-plugins'),
+  getAllPlugins: () => ipcRenderer.invoke('get-all-plugins'),
   importPlugin: () => ipcRenderer.invoke('import-plugin'),
   importDevPlugin: () => ipcRenderer.invoke('import-dev-plugin'),
   fetchPluginMarket: () => ipcRenderer.invoke('fetch-plugin-market'),
@@ -301,6 +302,7 @@ declare global {
       revealInFinder: (filePath: string) => Promise<void>
       showContextMenu: (menuItems: any[]) => Promise<void>
       getPlugins: () => Promise<any[]>
+      getAllPlugins: () => Promise<any[]>
       importPlugin: () => Promise<{ success: boolean; error?: string }>
       importDevPlugin: () => Promise<{ success: boolean; error?: string }>
       fetchPluginMarket: () => Promise<{ success: boolean; data?: any; error?: string }>
