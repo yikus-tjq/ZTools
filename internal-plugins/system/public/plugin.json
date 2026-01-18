@@ -29,6 +29,43 @@
       "explain": "睡眠",
       "icon": "sleep.png",
       "cmds": ["Sleep", "睡眠"]
+    },
+    {
+      "code": "search",
+      "explain": "百度搜索",
+      "icon": "baidu-search.png",
+      "cmds": [
+        {
+          "type": "over",
+          "label": "百度搜索",
+          "minLength": 1
+        }
+      ]
+    },
+    {
+      "code": "bing-search",
+      "explain": "必应搜索",
+      "icon": "bing.png",
+      "cmds": [
+        {
+          "type": "over",
+          "label": "必应搜索",
+          "minLength": 1
+        }
+      ]
+    },
+    {
+      "code": "open-url",
+      "explain": "打开网址",
+      "icon": "openurl.png",
+      "cmds": [
+        {
+          "type": "regex",
+          "match": "/^https?:\\/\\/[^\\s/$.?#]\\S+$|^[a-z0-9][-a-z0-9]{0,62}(\\.[a-z0-9][-a-z0-9]{0,62}){1,10}(:[0-9]{1,5})?$/im",
+          "label": "打开网址",
+          "minLength": 3
+        }
+      ]
     }
   ]
 }

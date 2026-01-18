@@ -192,33 +192,6 @@ export class AppsAPI {
     this.launchParam = param || {}
 
     try {
-      // 优先处理 system 插件（特殊的内置插件）
-      if (type === 'plugin') {
-        try {
-          const pluginJsonPath = path.join(appPath, 'plugin.json')
-          const pluginConfig = JSON.parse(await fs.readFile(pluginJsonPath, 'utf-8'))
-
-          if (pluginConfig.name === 'system') {
-            console.log('检测到 system 插件，执行系统命令:', featureCode)
-
-            // 添加到历史记录
-            await this.addToHistory({
-              path: appPath,
-              type,
-              featureCode,
-              name: name || featureCode,
-              cmdType: cmdType || 'text'
-            })
-
-            // 执行系统命令
-            return await this.executeSystemCommand(featureCode || '')
-          }
-        } catch (error) {
-          console.error('检查 system 插件失败:', error)
-          // 如果读取 plugin.json 失败，继续正常流程
-        }
-      }
-
       // 判断是插件还是直接启动
       if (type === 'plugin') {
         // 如果没有传 featureCode，自动查找第一个非匹配 feature
@@ -273,6 +246,23 @@ export class AppsAPI {
           // 非匹配指令，正常添加到历史记录
           await this.addToHistory({ path: appPath, type, featureCode, param, name, cmdType })
         }
+
+        // 检查是否为 system 插件（特殊处理：执行系统命令而不是创建视图）
+        try {
+          const pluginJsonPath = path.join(appPath, 'plugin.json')
+          const pluginConfig = JSON.parse(await fs.readFile(pluginJsonPath, 'utf-8'))
+
+          if (pluginConfig.name === 'system') {
+            console.log('检测到 system 插件，执行系统命令:', featureCode)
+            // system 插件：执行系统命令
+            return await this.executeSystemCommand(featureCode || '', param)
+          }
+        } catch (error) {
+          console.error('检查 system 插件失败:', error)
+          // 如果读取 plugin.json 失败，继续正常流程
+        }
+
+        // 普通插件：创建插件视图
 
         if (this.pluginManager) {
           // 检查是否配置为自动分离
@@ -915,7 +905,7 @@ export class AppsAPI {
   /**
    * 执行系统命令（system 插件专用）
    */
-  private async executeSystemCommand(command: string): Promise<any> {
+  private async executeSystemCommand(command: string, param?: any): Promise<any> {
     const { exec } = await import('child_process')
     const { promisify } = await import('util')
     const execAsync = promisify(exec)
@@ -958,6 +948,48 @@ export class AppsAPI {
           cmd = 'rundll32.exe powrprof.dll,SetSuspendState 0,1,0'
         }
         break
+
+      case 'search':
+        // 百度搜索
+        console.log('执行百度搜索:', param)
+        if (param && param.payload) {
+          const query = encodeURIComponent(param.payload)
+          const url = `https://www.baidu.com/s?wd=${query}`
+          await shell.openExternal(url)
+          this.mainWindow?.webContents.send('app-launched')
+          this.mainWindow?.hide()
+          return { success: true }
+        }
+        return { success: false, error: '缺少搜索关键词' }
+
+      case 'bing-search':
+        // 必应搜索
+        console.log('执行必应搜索:', param)
+        if (param && param.payload) {
+          const query = encodeURIComponent(param.payload)
+          const url = `https://www.bing.com/search?q=${query}`
+          await shell.openExternal(url)
+          this.mainWindow?.webContents.send('app-launched')
+          this.mainWindow?.hide()
+          return { success: true }
+        }
+        return { success: false, error: '缺少搜索关键词' }
+
+      case 'open-url':
+        // 打开网址
+        console.log('打开网址:', param)
+        if (param && param.payload) {
+          let url = param.payload.trim()
+          // 如果不是以 http:// 或 https:// 开头，自动添加 https://
+          if (!url.match(/^https?:\/\//i)) {
+            url = `https://${url}`
+          }
+          await shell.openExternal(url)
+          this.mainWindow?.webContents.send('app-launched')
+          this.mainWindow?.hide()
+          return { success: true }
+        }
+        return { success: false, error: '缺少网址' }
 
       default:
         return { success: false, error: `Unknown system command: ${command}` }

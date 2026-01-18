@@ -182,8 +182,13 @@ const bestSearchResults = computed(() => {
     matchedCommands = searchImageCommands()
     console.log('searchImageCommands', matchedCommands)
   } else if (props.pastedText) {
-    matchedCommands = searchTextCommands(props.pastedText)
-    console.log('searchTextCommands', matchedCommands)
+    // 粘贴文本时，只返回 over 类型的指令（regex 类型在 bestMatches 中显示）
+    const allMatched = searchTextCommands(props.pastedText)
+    matchedCommands = allMatched.filter((cmd) => {
+      const cmdType = cmd.cmdType || cmd.matchCmd?.type
+      return cmdType === 'over'
+    })
+    console.log('searchTextCommands (over only)', matchedCommands)
   } else if (props.pastedFiles) {
     matchedCommands = searchFileCommands(props.pastedFiles)
     console.log('searchFileCommands', matchedCommands)
@@ -212,9 +217,20 @@ const bestSearchResults = computed(() => {
 
 // 最佳匹配（匹配指令：regex/img/files 类型）
 const bestMatches = computed(() => {
-  // 有粘贴内容时不显示匹配指令
-  if (props.pastedImage || props.pastedText || props.pastedFiles) {
+  // 粘贴图片或文件时不显示匹配指令（这些类型已经在 bestSearchResults 中处理）
+  if (props.pastedImage || props.pastedFiles) {
     return []
+  }
+
+  // 粘贴文本时，返回 regex 类型的匹配指令
+  if (props.pastedText) {
+    const allMatched = searchTextCommands(props.pastedText)
+    const regexMatched = allMatched.filter((cmd) => {
+      const cmdType = cmd.cmdType || cmd.matchCmd?.type
+      return cmdType === 'regex'
+    })
+    console.log('searchTextCommands (regex only)', regexMatched)
+    return regexMatched
   }
 
   // 没有搜索关键词时不显示
@@ -320,13 +336,8 @@ const recommendations = computed(() => {
     return freqScoreB - freqScoreA
   })
 
-  // 百度搜索指令（内置功能，始终放最后）
-  const baiduSearch = commandDataStore.applySpecialConfig({
-    path: `baidu-search:${props.searchQuery}`
-  } as any)
-
-  // 排序后的正则匹配结果 + 百度搜索
-  return [...sortedRegexResults, baiduSearch]
+  // 返回排序后的正则匹配结果
+  return sortedRegexResults
 })
 
 // 访达功能列表
@@ -663,12 +674,7 @@ async function handleAppContextMenu(
   }
 
   // 如果是应用（不是插件和系统设置），显示"打开文件位置"
-  if (
-    app.type !== 'system-setting' &&
-    app.type !== 'plugin' &&
-    app.path &&
-    !app.path.startsWith('baidu-search:')
-  ) {
+  if (app.type !== 'system-setting' && app.type !== 'plugin' && app.path) {
     menuItems.push({
       id: `reveal-in-finder:${JSON.stringify({ path: app.path })}`,
       label: '打开文件位置'
@@ -761,7 +767,10 @@ async function handleSelectApp(app: any): Promise<void> {
       // 图片类型：传递 base64 字符串
       payload = props.pastedImage
     } else if (app.cmdType === 'over' && props.pastedText) {
-      // 文本类型：传递粘贴的文本
+      // over 类型：传递粘贴的文本
+      payload = props.pastedText
+    } else if (app.cmdType === 'regex' && props.pastedText) {
+      // regex 类型：传递粘贴的文本
       payload = props.pastedText
     } else if (app.cmdType === 'files' && props.pastedFiles) {
       // 文件类型：将 FileItem[] 转换为 MatchFile[]
@@ -842,13 +851,7 @@ async function handleFinderAction(item: any): Promise<void> {
 
 // 选择推荐项
 async function handleRecommendationSelect(item: any): Promise<void> {
-  if (item.path.startsWith('baidu-search:')) {
-    // 百度搜索
-    const query = encodeURIComponent(props.searchQuery)
-    const url = `https://www.baidu.com/s?wd=${query}`
-    await window.ztools.openExternal(url)
-    window.ztools.hideWindow()
-  } else if (item.type === 'plugin') {
+  if (item.type === 'plugin') {
     // 插件类型（正则匹配的结果）
     await handleSelectApp(item)
   }

@@ -3,7 +3,6 @@ import { defineStore } from 'pinia'
 import { pinyin } from 'pinyin-pro'
 import { ref } from 'vue'
 import arrowBackwardIcon from '../assets/image/arrow-backward.png'
-import baiduLogoIcon from '../assets/image/baidu-logo.png'
 import settingsFillIcon from '../assets/image/settings-fill.png'
 
 // 正则匹配指令
@@ -96,21 +95,15 @@ const PINNED_DOC_ID = 'pinned-commands'
 
 export const useCommandDataStore = defineStore('commandData', () => {
   // ===== 特殊指令配置表 =====
-  // 支持三种匹配方式：
+  // 支持两种匹配方式：
   // 1. 通过 path 精确匹配（如 'special:last-match'）
-  // 2. 通过 path 前缀匹配（如 'prefix:baidu-search:'）
-  // 3. 通过 subType 匹配（如 'subType:system-setting'）
+  // 2. 通过 subType 匹配（如 'subType:system-setting'）
   const specialCommands: Record<string, Partial<Command>> = {
     'special:last-match': {
       name: '上次匹配',
       icon: arrowBackwardIcon,
       type: 'builtin',
       cmdType: 'text'
-    },
-    'prefix:baidu-search:': {
-      name: '百度搜索',
-      icon: baiduLogoIcon,
-      type: 'builtin'
     },
     'subType:system-setting': {
       icon: settingsFillIcon
@@ -129,17 +122,7 @@ export const useCommandDataStore = defineStore('commandData', () => {
       return { ...command, ...pathConfig }
     }
 
-    // 2. 通过 path 前缀匹配
-    for (const [key, config] of Object.entries(specialCommands)) {
-      if (key.startsWith('prefix:')) {
-        const prefix = key.substring(7) // 去掉 'prefix:' 前缀
-        if (command.path?.startsWith(prefix)) {
-          return { ...command, ...config }
-        }
-      }
-    }
-
-    // 3. 通过 subType 匹配
+    // 2. 通过 subType 匹配
     if (command.subType) {
       const subTypeKey = `subType:${command.subType}`
       const subTypeConfig = specialCommands[subTypeKey]
@@ -685,15 +668,45 @@ export const useCommandDataStore = defineStore('commandData', () => {
     }
 
     const result = regexCommands.value.filter((cmd) => {
-      if (cmd.matchCmd?.type !== 'over') {
-        return false
+      // 支持 over 类型
+      if (cmd.matchCmd?.type === 'over') {
+        const textLength = pastedText.length
+        const minLength = cmd.matchCmd.minLength ?? 1
+        const maxLength = cmd.matchCmd.maxLength ?? 10000
+
+        return textLength >= minLength && textLength <= maxLength
       }
 
-      const textLength = pastedText.length
-      const minLength = cmd.matchCmd.minLength ?? 1
-      const maxLength = cmd.matchCmd.maxLength ?? 10000
+      // 支持 regex 类型
+      if (cmd.matchCmd?.type === 'regex') {
+        const textLength = pastedText.length
+        const minLength = cmd.matchCmd.minLength ?? 1
 
-      return textLength >= minLength && textLength <= maxLength
+        // 检查长度
+        if (textLength < minLength) {
+          return false
+        }
+
+        // 检查正则匹配
+        const regexStr = cmd.matchCmd.match
+        if (regexStr) {
+          try {
+            // 解析正则表达式字符串（格式：/pattern/flags）
+            const match = regexStr.match(/^\/(.+)\/([gimuy]*)$/)
+            if (match) {
+              const pattern = match[1]
+              const flags = match[2]
+              const regex = new RegExp(pattern, flags)
+              return regex.test(pastedText)
+            }
+          } catch (error) {
+            console.error('正则表达式解析失败:', regexStr, error)
+            return false
+          }
+        }
+      }
+
+      return false
     })
 
     // 应用特殊指令配置
