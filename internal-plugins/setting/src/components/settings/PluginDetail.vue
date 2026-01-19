@@ -16,7 +16,6 @@
           <div class="detail-info">
             <div class="detail-title">
               <span class="detail-name">{{ plugin.title || plugin.name }}</span>
-              <span class="detail-version">v{{ plugin.version }}</span>
             </div>
             <div class="detail-desc">{{ plugin.description || '暂无描述' }}</div>
           </div>
@@ -80,6 +79,115 @@
               />
             </svg>
           </button>
+        </div>
+      </div>
+
+      <!-- App Store 风格的三栏信息 -->
+      <div class="detail-meta">
+        <div class="meta-item">
+          <div class="meta-label">开发者</div>
+          <div class="meta-icon">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12 11C14.2091 11 16 9.20914 16 7C16 4.79086 14.2091 3 12 3C9.79086 3 8 4.79086 8 7C8 9.20914 9.79086 11 12 11Z"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div
+            v-if="plugin.author"
+            class="meta-value"
+            :class="{ clickable: plugin.homepage }"
+            @click="openHomepage"
+          >
+            {{ plugin.author }}
+          </div>
+          <div v-else class="meta-value">未知</div>
+        </div>
+
+        <div class="meta-divider"></div>
+
+        <div class="meta-item">
+          <div class="meta-label">版本</div>
+          <div class="meta-icon">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M9 11L12 14L22 4"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M21 12V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H16"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="meta-value">{{ plugin.version || '-' }}</div>
+        </div>
+
+        <div class="meta-divider"></div>
+
+        <div class="meta-item">
+          <div class="meta-label">大小</div>
+          <div class="meta-icon">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M7 10L12 15L17 10"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M12 15V3"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </div>
+          <div class="meta-value">{{ formatSize(plugin.size) || '-' }}</div>
         </div>
       </div>
     </div>
@@ -231,6 +339,9 @@ interface PluginItem {
   installed?: boolean
   localVersion?: string
   path?: string
+  size?: number
+  author?: string
+  homepage?: string
 }
 
 interface DocItem {
@@ -487,6 +598,24 @@ function formatDate(dateStr?: string): string {
   }
 }
 
+// 格式化文件大小
+function formatSize(bytes?: number): string {
+  if (!bytes || bytes <= 0) return ''
+  const mb = bytes / (1024 * 1024)
+  if (mb >= 1) {
+    return `${mb.toFixed(2)} MB`
+  }
+  const kb = bytes / 1024
+  return `${kb.toFixed(2)} KB`
+}
+
+// 打开主页
+function openHomepage(): void {
+  if (props.plugin.homepage) {
+    window.ztools.shellOpenExternal(props.plugin.homepage)
+  }
+}
+
 // 组件挂载时加载 README
 onMounted(() => {
   // 无论是否安装，只要有插件信息就尝试加载
@@ -591,20 +720,77 @@ onMounted(() => {
   color: var(--text-color);
 }
 
-.detail-version {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  padding: 4px 8px;
-  background: var(--active-bg);
-  border-radius: 6px;
-}
-
 .detail-desc {
   font-size: 13px;
   color: var(--text-secondary);
   line-height: 1.5;
   word-break: break-word;
+}
+
+/* 三栏信息 */
+.detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 16px 0;
+  margin-top: 16px;
+  border-top: 1px solid var(--divider-color);
+}
+
+.meta-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.meta-icon {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meta-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.meta-value {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.meta-value.clickable {
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.meta-value.clickable:hover {
+  opacity: 0.7;
+}
+
+.meta-value.author-link.clickable {
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.meta-value.author-link.clickable:hover {
+  opacity: 0.7;
+}
+
+.meta-divider {
+  width: 1px;
+  height: 32px;
+  background: var(--divider-color);
+  flex-shrink: 0;
 }
 
 /* Tab 容器 */

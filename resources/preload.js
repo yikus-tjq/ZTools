@@ -163,10 +163,11 @@ window.ztools = {
     delete: async (id) => await electron.ipcRenderer.invoke('clipboard:delete', id),
     clear: async (type) => await electron.ipcRenderer.invoke('clipboard:clear', type),
     getStatus: async () => await electron.ipcRenderer.invoke('clipboard:get-status'),
-    write: async (id) => await electron.ipcRenderer.invoke('clipboard:write', id),
-    // 写入内容到剪贴板 ({ type: 'text'|'image', content: string })
-    writeContent: async (data) =>
-      await electron.ipcRenderer.invoke('clipboard:write-content', data),
+    write: async (id, shouldPaste = true) =>
+      await electron.ipcRenderer.invoke('clipboard:write', id, shouldPaste),
+    // 写入内容到剪贴板 ({ type: 'text'|'image', content: string }, shouldPaste = true)
+    writeContent: async (data, shouldPaste = true) =>
+      await electron.ipcRenderer.invoke('clipboard:write-content', data, shouldPaste),
     updateConfig: async (config) =>
       await electron.ipcRenderer.invoke('clipboard:update-config', config),
     // 监听剪贴板变化事件

@@ -73,7 +73,7 @@ export class ClipboardAPI {
     })
 
     // 写回剪贴板
-    ipcMain.handle('clipboard:write', async (_event, id: string) => {
+    ipcMain.handle('clipboard:write', async (_event, id: string, shouldPaste: boolean = true) => {
       // 先隐藏窗口
       windowManager.hideWindow()
       // 设置窗口激活状态
@@ -83,7 +83,9 @@ export class ClipboardAPI {
       }
       try {
         const result = await clipboardManager.writeToClipboard(id)
-        WindowManager.simulatePaste()
+        if (shouldPaste) {
+          WindowManager.simulatePaste()
+        }
         return { success: result }
       } catch (error) {
         console.error('写回剪贴板失败:', error)
@@ -94,7 +96,11 @@ export class ClipboardAPI {
     // 直接写入内容并粘贴
     ipcMain.handle(
       'clipboard:write-content',
-      async (_event, data: { type: 'text' | 'image'; content: string }) => {
+      async (
+        _event,
+        data: { type: 'text' | 'image'; content: string },
+        shouldPaste: boolean = true
+      ) => {
         // 先隐藏窗口
         windowManager.hideWindow()
         // 设置窗口激活状态
@@ -104,7 +110,7 @@ export class ClipboardAPI {
         }
         try {
           const result = clipboardManager.writeContent(data)
-          if (result) {
+          if (result && shouldPaste) {
             WindowManager.simulatePaste()
           }
           return { success: result }
