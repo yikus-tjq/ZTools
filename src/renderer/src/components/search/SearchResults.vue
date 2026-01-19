@@ -175,27 +175,31 @@ const scrollContainerRef = ref<HTMLElement>()
 
 // 最佳搜索结果（模糊搜索：应用、插件、系统设置）
 const bestSearchResults = computed(() => {
-  // 如果有粘贴内容，先获取匹配类型的指令
-  let matchedCommands: any[] | null = null
+  // 粘贴图片或文件时不显示最佳搜索结果（显示在最佳匹配中）
+  if (props.pastedImage || props.pastedFiles) {
+    return []
+  }
 
-  if (props.pastedImage) {
-    matchedCommands = searchImageCommands()
-    console.log('searchImageCommands', matchedCommands)
-  } else if (props.pastedText) {
-    // 粘贴文本时，只返回 over 类型的指令（regex 类型在 bestMatches 中显示）
+  // 粘贴文本时，检查是否有 regex 类型的匹配
+  if (props.pastedText) {
     const allMatched = searchTextCommands(props.pastedText)
-    matchedCommands = allMatched.filter((cmd) => {
+    const regexMatched = allMatched.filter((cmd) => {
+      const cmdType = cmd.cmdType || cmd.matchCmd?.type
+      return cmdType === 'regex'
+    })
+
+    // 如果有 regex 匹配（最佳匹配），则不显示 over 类型（最佳搜索结果）
+    if (regexMatched.length > 0) {
+      return []
+    }
+
+    // 否则返回 over 类型的指令
+    const matchedCommands = allMatched.filter((cmd) => {
       const cmdType = cmd.cmdType || cmd.matchCmd?.type
       return cmdType === 'over'
     })
     console.log('searchTextCommands (over only)', matchedCommands)
-  } else if (props.pastedFiles) {
-    matchedCommands = searchFileCommands(props.pastedFiles)
-    console.log('searchFileCommands', matchedCommands)
-  }
 
-  // 如果有匹配的指令列表（有粘贴内容）
-  if (matchedCommands) {
     // 如果有搜索关键词，使用统一的搜索函数，但限制在匹配的指令中
     if (props.searchQuery.trim()) {
       const result = searchInCommands(matchedCommands, props.searchQuery)
@@ -206,20 +210,51 @@ const bestSearchResults = computed(() => {
     return matchedCommands
   }
 
-  // 否则正常搜索（无粘贴内容），返回模糊搜索结果
+  // 否则正常搜索（无粘贴内容）
   if (!props.searchQuery.trim()) {
     return []
   }
 
+  // 如果有最佳匹配（regex/img/files 类型），则不显示模糊搜索结果
+  if (bestMatches.value.length > 0) {
+    return []
+  }
+
+  // 返回模糊搜索结果
   const result = search(props.searchQuery)
   return result.bestMatches
 })
 
 // 最佳匹配（匹配指令：regex/img/files 类型）
 const bestMatches = computed(() => {
-  // 粘贴图片或文件时不显示匹配指令（这些类型已经在 bestSearchResults 中处理）
-  if (props.pastedImage || props.pastedFiles) {
-    return []
+  // 粘贴图片时，返回 img 类型的匹配指令
+  if (props.pastedImage) {
+    const matchedCommands = searchImageCommands()
+    console.log('searchImageCommands', matchedCommands)
+
+    // 如果有搜索关键词，支持二次筛选
+    if (props.searchQuery.trim()) {
+      const result = searchInCommands(matchedCommands, props.searchQuery)
+      console.log('在 img 匹配指令中搜索', props.searchQuery, '结果:', result)
+      return result
+    }
+
+    return matchedCommands
+  }
+
+  // 粘贴文件时，返回 files 类型的匹配指令
+  if (props.pastedFiles) {
+    const matchedCommands = searchFileCommands(props.pastedFiles)
+    console.log('searchFileCommands', matchedCommands)
+
+    // 如果有搜索关键词，支持二次筛选
+    if (props.searchQuery.trim()) {
+      const result = searchInCommands(matchedCommands, props.searchQuery)
+      console.log('在 files 匹配指令中搜索', props.searchQuery, '结果:', result)
+      return result
+    }
+
+    return matchedCommands
   }
 
   // 粘贴文本时，返回 regex 类型的匹配指令
@@ -230,6 +265,14 @@ const bestMatches = computed(() => {
       return cmdType === 'regex'
     })
     console.log('searchTextCommands (regex only)', regexMatched)
+
+    // 如果有搜索关键词，支持二次筛选
+    if (props.searchQuery.trim()) {
+      const result = searchInCommands(regexMatched, props.searchQuery)
+      console.log('在 regex 匹配指令中搜索', props.searchQuery, '结果:', result)
+      return result
+    }
+
     return regexMatched
   }
 
@@ -238,11 +281,7 @@ const bestMatches = computed(() => {
     return []
   }
 
-  // 只有当没有模糊搜索结果时，才显示匹配指令
-  if (bestSearchResults.value.length > 0) {
-    return []
-  }
-
+  // 普通搜索：返回匹配指令（regex/img/files 类型）
   const result = search(props.searchQuery)
 
   // 从 regexMatches 中过滤出 regex、img、files 类型（排除 over）
@@ -287,20 +326,38 @@ function calculateFrequencyScore(useCount: number, lastUsed: number): number {
 
 // 推荐列表
 const recommendations = computed(() => {
-  // 粘贴图片、文本或文件时不显示推荐
-  if (props.pastedImage || props.pastedText || props.pastedFiles) return []
-  if (props.searchQuery.trim() === '') {
-    return []
+  // 粘贴图片或文件时不显示推荐
+  if (props.pastedImage || props.pastedFiles) return []
+
+  let overTypeResults: any[] = []
+
+  // 粘贴文本时，获取 over 类型的匹配指令
+  if (props.pastedText) {
+    const allMatched = searchTextCommands(props.pastedText)
+    overTypeResults = allMatched.filter((cmd) => {
+      const cmdType = cmd.cmdType || cmd.matchCmd?.type
+      return cmdType === 'over'
+    })
+
+    // 如果有搜索关键词，支持二次筛选
+    if (props.searchQuery.trim()) {
+      overTypeResults = searchInCommands(overTypeResults, props.searchQuery)
+    }
+  } else {
+    // 普通搜索
+    if (props.searchQuery.trim() === '') {
+      return []
+    }
+
+    const searchResult = search(props.searchQuery)
+    const regexResults = searchResult.regexMatches
+
+    // 只保留 over 类型的匹配指令
+    overTypeResults = regexResults.filter((cmd) => {
+      const cmdType = cmd.cmdType || cmd.matchCmd?.type
+      return cmdType === 'over'
+    })
   }
-
-  const searchResult = search(props.searchQuery)
-  const regexResults = searchResult.regexMatches
-
-  // 只保留 over 类型的匹配指令
-  const overTypeResults = regexResults.filter((cmd) => {
-    const cmdType = cmd.cmdType || cmd.matchCmd?.type
-    return cmdType === 'over'
-  })
 
   // 去重：同一个 feature 只保留第一个匹配的 cmd
   const seenFeatures = new Set<string>()
