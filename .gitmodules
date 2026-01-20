@@ -1,0 +1,3 @@
+[submodule "ztools-plugin-cli"]
+	path = ztools-plugin-cli
+	url = https://github.com/ZToolsCenter/ztools-plugin-cli.git
