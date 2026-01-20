@@ -252,8 +252,15 @@ app.on('will-quit', () => {
   appWatcher.stop()
 })
 
-app.on('before-quit', () => {
-  windowManager.setQuitting(true)
+app.on('before-quit', (event) => {
+  // 检查是否是通过托盘菜单主动退出
+  if (!windowManager.getQuitting()) {
+    // 不是主动退出（如 Command+Q），阻止退出
+    event.preventDefault()
+    console.log('阻止了 Command+Q 退出，请使用托盘菜单退出')
+    // 隐藏窗口
+    windowManager.hideWindow(false)
+  }
 })
 
 app.on('activate', () => {

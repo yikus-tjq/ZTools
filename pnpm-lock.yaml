@@ -72,6 +72,9 @@ importers:
       '@lmdb/lmdb-darwin-x64':
         specifier: ^3.4.4
         version: 3.4.4
+      '@types/adm-zip':
+        specifier: ^0.5.7
+        version: 0.5.7
       '@types/marked':
         specifier: ^5.0.2
         version: 5.0.2
@@ -896,6 +899,9 @@ packages:
   '@tootallnate/once@2.0.0':
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
     engines: {node: '>= 10'}
+
+  '@types/adm-zip@0.5.7':
+    resolution: {integrity: sha512-DNEs/QvmyRLurdQPChqq0Md4zGvPwHerAJYWk9l2jCbD1VPpnzRJorOdiq4zsw09NFbYnhfsoEhWtxIzXpn2yw==}
 
   '@types/cacheable-request@6.0.3':
     resolution: {integrity: sha512-IQ3EbTzGxIigb1I3qPZc1rWJnH0BmSKv5QYTalEwweFvyBDLSAe24zP0le/hyi7ecGfZVlIVAg4BZqb8WBwKqw==}
@@ -3694,6 +3700,10 @@ snapshots:
       defer-to-connect: 2.0.1
 
   '@tootallnate/once@2.0.0': {}
+
+  '@types/adm-zip@0.5.7':
+    dependencies:
+      '@types/node': 22.19.3
 
   '@types/cacheable-request@6.0.3':
     dependencies:

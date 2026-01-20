@@ -107,6 +107,50 @@ export class PluginsAPI {
     }
   }
 
+  /**
+   * 验证插件配置
+   * @param pluginConfig 插件配置对象
+   * @param existingPlugins 已存在的插件列表
+   * @returns 验证结果 { valid: boolean, error?: string }
+   */
+  private async validatePluginConfig(
+    pluginConfig: any,
+    existingPlugins: any[]
+  ): Promise<{ valid: boolean; error?: string }> {
+    // 检查 title 是否冲突（如果有 title 字段）
+    if (pluginConfig.title) {
+      const titleConflict = existingPlugins.find((p: any) => p.title === pluginConfig.title)
+      if (titleConflict) {
+        return {
+          valid: false,
+          error: `插件标题 "${pluginConfig.title}" 已被插件 "${titleConflict.name}" 使用，请使用不同的标题`
+        }
+      }
+    }
+
+    // 校验必填字段
+    const requiredFields = ['name', 'version', 'features']
+    for (const field of requiredFields) {
+      if (!pluginConfig[field]) {
+        return { valid: false, error: `缺少必填字段: ${field}` }
+      }
+    }
+
+    // 校验 features 数组
+    if (!Array.isArray(pluginConfig.features) || pluginConfig.features.length === 0) {
+      return { valid: false, error: 'features 必须是非空数组' }
+    }
+
+    // 校验每个 feature 的字段
+    for (const feature of pluginConfig.features) {
+      if (!feature.code || !Array.isArray(feature.cmds)) {
+        return { valid: false, error: 'feature 缺少必填字段 (code, cmds)' }
+      }
+    }
+
+    return { valid: true }
+  }
+
   // 导入ZIP插件
   private async importPlugin(): Promise<any> {
     try {
@@ -182,25 +226,11 @@ export class PluginsAPI {
         return { success: false, error: '插件已存在' }
       }
 
-      // 校验必填字段
-      const requiredFields = ['name', 'version', 'features']
-      for (const field of requiredFields) {
-        if (!pluginConfig[field]) {
-          await fs.rm(tempExtractPath, { recursive: true, force: true })
-          return { success: false, error: `缺少必填字段: ${field}` }
-        }
-      }
-
-      if (!Array.isArray(pluginConfig.features) || pluginConfig.features.length === 0) {
+      // 验证插件配置
+      const validation = await this.validatePluginConfig(pluginConfig, existingPlugins)
+      if (!validation.valid) {
         await fs.rm(tempExtractPath, { recursive: true, force: true })
-        return { success: false, error: 'features 必须是非空数组' }
-      }
-
-      for (const feature of pluginConfig.features) {
-        if (!feature.code || !Array.isArray(feature.cmds)) {
-          await fs.rm(tempExtractPath, { recursive: true, force: true })
-          return { success: false, error: 'feature 缺少必填字段 (code, cmds)' }
-        }
+        return { success: false, error: validation.error }
       }
 
       // 移动到最终目录
@@ -309,25 +339,15 @@ export class PluginsAPI {
         return { success: false, error: '插件已存在' }
       }
 
-      const requiredFields = ['name', 'version', 'features']
-      for (const field of requiredFields) {
-        if (!pluginConfig[field]) {
-          return { success: false, error: `缺少必填字段: ${field}` }
-        }
-      }
-
-      if (!Array.isArray(pluginConfig.features) || pluginConfig.features.length === 0) {
-        return { success: false, error: 'features 必须是非空数组' }
-      }
-
-      for (const feature of pluginConfig.features) {
-        if (!feature.code || !Array.isArray(feature.cmds)) {
-          return { success: false, error: 'feature 缺少必填字段 (code, cmds)' }
-        }
+      // 验证插件配置
+      const validation = await this.validatePluginConfig(pluginConfig, existingPlugins)
+      if (!validation.valid) {
+        return { success: false, error: validation.error }
       }
 
       const pluginInfo = {
         name: pluginConfig.name,
+        title: pluginConfig.title,
         version: pluginConfig.version,
         description: pluginConfig.description || '',
         logo: pluginConfig.logo ? pathToFileURL(path.join(pluginPath, pluginConfig.logo)).href : '',
