@@ -162,7 +162,7 @@ export class UpdaterAPI {
 
       const zip = new AdmZip(tempZipPath)
       await new Promise<void>((resolve, reject) => {
-        zip.extractAllToAsync(extractPath, true, (error: Error | null) => {
+        zip.extractAllToAsync(extractPath, true, false, (error?: Error) => {
           if (error) {
             reject(error)
           } else {
