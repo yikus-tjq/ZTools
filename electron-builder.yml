@@ -19,7 +19,6 @@ asarUnpack:
   - resources/**
 win:
   executableName: ZTools
-  fileDescription: ZTools
   artifactName: ${name}-${version}-${os}-${arch}.${ext}
   target:
     - target: nsis
