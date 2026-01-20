@@ -269,6 +269,17 @@ async function handleUpgradePlugin(plugin: Plugin): Promise<void> {
 
   installingPlugin.value = plugin.name
   try {
+    // 0. 检查插件是否正在运行，如果是则先停止
+    console.log('检查插件运行状态:', plugin.name)
+    const runningPlugins = await window.ztools.internal.getRunningPlugins()
+    if (runningPlugins.includes(plugin.path)) {
+      console.log('插件正在运行，先停止插件:', plugin.name)
+      const killResult = await window.ztools.internal.killPlugin(plugin.path)
+      if (!killResult.success) {
+        console.warn('停止插件失败，继续升级:', killResult.error)
+      }
+    }
+
     // 1. 卸载旧版本
     console.log('开始卸载旧版本:', plugin.name)
     const deleteResult = await window.ztools.internal.deletePlugin(plugin.path)
