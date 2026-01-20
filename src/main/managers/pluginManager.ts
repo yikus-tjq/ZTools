@@ -175,16 +175,28 @@ class PluginManager {
       // 设置透明背景，支持 fullscreen-ui 效果
       this.pluginView.setBackgroundColor('#00000000')
 
-      // 监听 Cmd+D / Ctrl+D 快捷键（ESC 改为在插件 preload 中通过 JS 拦截后再通过 IPC 通知）
-      this.pluginView.webContents.on('before-input-event', (_event, input) => {
+      // 监听 Cmd+D / Ctrl+D 和 Cmd+Q / Ctrl+Q 快捷键（ESC 改为在插件 preload 中通过 JS 拦截后再通过 IPC 通知）
+      this.pluginView.webContents.on('before-input-event', (event, input) => {
         // Cmd+D / Ctrl+D: 分离插件到独立窗口
         if (
           input.type === 'keyDown' &&
           (input.key === 'd' || input.key === 'D') &&
           (input.meta || input.control)
         ) {
+          event.preventDefault() // 阻止事件继续传播
           console.log('插件视图检测到 Cmd+D 快捷键')
           this.detachCurrentPlugin()
+        }
+
+        // Cmd+Q / Ctrl+Q: 终止插件并返回搜索页面
+        if (
+          input.type === 'keyDown' &&
+          (input.key === 'q' || input.key === 'Q') &&
+          (input.meta || input.control)
+        ) {
+          event.preventDefault() // 阻止事件继续传播到系统层（避免触发 app.quit）
+          console.log('插件视图检测到 Cmd+Q 快捷键，终止插件')
+          this.killCurrentPlugin()
         }
       })
 
@@ -462,6 +474,30 @@ class PluginManager {
     this.pluginViews = []
     this.pluginView = null
     this.currentPluginPath = null
+  }
+
+  /**
+   * 终止当前插件并返回搜索页面
+   * 用于 Cmd+Q / Ctrl+Q 快捷键
+   */
+  public killCurrentPlugin(): void {
+    if (!this.currentPluginPath) {
+      console.log('没有正在运行的插件')
+      return
+    }
+
+    const pluginPath = this.currentPluginPath
+
+    // 终止插件
+    const success = this.killPlugin(pluginPath)
+
+    if (success && this.mainWindow) {
+      // 通知主窗口返回搜索页面
+      this.mainWindow.webContents.send('back-to-search')
+      // 主窗口获取焦点
+      this.mainWindow.webContents.focus()
+      console.log('已终止插件并返回搜索页面')
+    }
   }
 
   // 发送输入事件到当前插件（统一接口）

@@ -807,6 +807,7 @@ async function handleSettingsClick(): Promise<void> {
     // 根据平台显示不同的快捷键
     const platform = window.ztools.getPlatform()
     const detachShortcut = platform === 'darwin' ? '⌘+D' : 'Ctrl+D'
+    const killShortcut = platform === 'darwin' ? '⌘+Q' : 'Ctrl+Q'
 
     const menuItems = [
       { id: 'detach-plugin', label: `分离到独立窗口 (${detachShortcut})` },
@@ -828,7 +829,7 @@ async function handleSettingsClick(): Promise<void> {
           }
         ]
       },
-      { id: 'kill-plugin', label: '结束运行' }
+      { id: 'kill-plugin', label: `结束运行 (${killShortcut})` }
     ]
 
     await window.ztools.showContextMenu(menuItems)

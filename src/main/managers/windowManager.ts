@@ -624,6 +624,13 @@ class WindowManager {
   }
 
   /**
+   * 获取退出标志
+   */
+  public getQuitting(): boolean {
+    return this.isQuitting
+  }
+
+  /**
    * 设置托盘图标可见性
    */
   public setTrayIconVisible(visible: boolean): void {

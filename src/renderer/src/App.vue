@@ -262,7 +262,7 @@ watch(currentView, (newView) => {
 })
 
 //键盘操作
-function handleKeydown(event: KeyboardEvent): void {
+async function handleKeydown(event: KeyboardEvent): Promise<void> {
   // 如果正在输入法组合中,忽略所有键盘事件
   if (isComposing.value) {
     return
@@ -275,6 +275,27 @@ function handleKeydown(event: KeyboardEvent): void {
     if (currentView.value === ViewMode.Plugin && windowStore.currentPlugin) {
       console.log('正在分离插件...')
       detachCurrentPlugin()
+    }
+    return
+  }
+
+  // Cmd/Ctrl + Q: 在插件内终止插件
+  if ((event.key === 'q' || event.key === 'Q') && (event.metaKey || event.ctrlKey)) {
+    console.log('检测到 Cmd+Q/Ctrl+Q 快捷键，当前视图:', currentView.value)
+    event.preventDefault()
+    if (currentView.value === ViewMode.Plugin && windowStore.currentPlugin) {
+      // 终止插件并返回搜索页面（与右上角菜单"结束运行"相同）
+      console.log('终止插件并返回搜索页面')
+      try {
+        const result = await window.ztools.killPluginAndReturn(windowStore.currentPlugin.path)
+        if (!result.success) {
+          console.error('终止插件失败:', result.error)
+        }
+      } catch (error: any) {
+        console.error('终止插件失败:', error)
+      }
+    } else {
+      window.ztools.hideWindow()
     }
     return
   }
