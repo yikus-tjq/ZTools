@@ -1,3 +1,0 @@
-/// <reference path="ztools.api.d.ts" />
-
-export = ztools
