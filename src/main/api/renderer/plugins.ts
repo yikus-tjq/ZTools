@@ -525,13 +525,11 @@ export class PluginsAPI {
   // 获取插件市场列表
   private async fetchPluginMarket(): Promise<any> {
     try {
-      // 从 GitHub Releases 获取 plugins.json
-      const pluginsJsonUrl =
-        'https://github.com/ZToolsCenter/ZTools-plugins/releases/latest/download/plugins.json'
-      const latestVersionUrl =
-        'https://github.com/ZToolsCenter/ZTools-plugins/releases/latest/download/latest'
+      // 从 OSS 获取 plugins.json
+      const pluginsJsonUrl = 'https://ztools-center.oss-cn-beijing.aliyuncs.com/plugins.json'
+      const latestVersionUrl = 'https://ztools-center.oss-cn-beijing.aliyuncs.com/latest'
 
-      console.log('从 GitHub Releases 获取插件市场列表...')
+      console.log('从 OSS 获取插件市场列表...')
 
       // 获取最新版本号（格式：2026.01.17.1337）
       let latestVersion = ''
