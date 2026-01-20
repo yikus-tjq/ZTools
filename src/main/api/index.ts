@@ -202,7 +202,7 @@ class APIManager {
         return
       }
 
-      const plugin = plugins.find((p: any) => p.name === pluginDescription)
+      const plugin = plugins.find((p: any) => p.title === pluginDescription)
       if (!plugin) {
         console.error(`未找到插件: ${pluginDescription}`)
         return
