@@ -1,8 +1,0 @@
-{
-  "name": "{{PROJECT_NAME}}",
-  "version": "1.0.0",
-  "description": "{{DESCRIPTION}}",
-  "devDependencies": {
-    "@ztools-center/ztools-api-types": "^1.0.1"
-  }
-}
