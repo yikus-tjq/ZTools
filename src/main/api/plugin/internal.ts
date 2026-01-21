@@ -351,6 +351,26 @@ export class InternalPluginAPI {
       }
     )
 
+    // 通知主渲染进程更新最近使用行数
+    ipcMain.handle('internal:update-recent-rows', async (event, rows: number) => {
+      if (!requireInternalPlugin(this.pluginManager, event)) {
+        throw new PermissionDeniedError('internal:update-recent-rows')
+      }
+      // 广播到主渲染进程
+      this.mainWindow?.webContents.send('update-recent-rows', rows)
+      return { success: true }
+    })
+
+    // 通知主渲染进程更新固定栏行数
+    ipcMain.handle('internal:update-pinned-rows', async (event, rows: number) => {
+      if (!requireInternalPlugin(this.pluginManager, event)) {
+        throw new PermissionDeniedError('internal:update-pinned-rows')
+      }
+      // 广播到主渲染进程
+      this.mainWindow?.webContents.send('update-pinned-rows', rows)
+      return { success: true }
+    })
+
     // 通知主渲染进程更新主题色
     ipcMain.handle(
       'internal:update-primary-color',

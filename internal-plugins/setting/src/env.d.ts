@@ -135,6 +135,8 @@ declare global {
         updateAutoClear: (autoClear: string) => Promise<void>
         updateAutoBackToSearch: (autoBackToSearch: string) => Promise<void>
         updateShowRecentInSearch: (showRecentInSearch: boolean) => Promise<void>
+        updateRecentRows: (rows: number) => Promise<void>
+        updatePinnedRows: (rows: number) => Promise<void>
         setTheme: (theme: string) => Promise<void>
         updatePrimaryColor: (primaryColor: string, customColor?: string) => Promise<void>
         setTrayIconVisible: (visible: boolean) => Promise<void>

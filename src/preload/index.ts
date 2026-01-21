@@ -137,6 +137,12 @@ const api = {
       callback(showRecentInSearch)
     )
   },
+  onUpdateRecentRows: (callback: (rows: number) => void) => {
+    ipcRenderer.on('update-recent-rows', (_event, rows) => callback(rows))
+  },
+  onUpdatePinnedRows: (callback: (rows: number) => void) => {
+    ipcRenderer.on('update-pinned-rows', (_event, rows) => callback(rows))
+  },
   onUpdatePrimaryColor: (
     callback: (data: { primaryColor: string; customColor?: string }) => void
   ) => {

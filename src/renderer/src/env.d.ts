@@ -213,6 +213,8 @@ declare global {
       onUpdateAutoPaste: (callback: (autoPaste: string) => void) => void
       onUpdateAutoClear: (callback: (autoClear: string) => void) => void
       onUpdateShowRecentInSearch: (callback: (showRecentInSearch: boolean) => void) => void
+      onUpdateRecentRows: (callback: (rows: number) => void) => void
+      onUpdatePinnedRows: (callback: (rows: number) => void) => void
       onUpdatePrimaryColor: (
         callback: (data: { primaryColor: string; customColor?: string }) => void
       ) => void

@@ -539,6 +539,16 @@ onMounted(async () => {
     windowStore.updateShowRecentInSearch(showRecentInSearch)
   })
 
+  // 监听最近使用行数更新事件
+  window.ztools.onUpdateRecentRows((rows: number) => {
+    windowStore.updateRecentRows(rows)
+  })
+
+  // 监听固定栏行数更新事件
+  window.ztools.onUpdatePinnedRows((rows: number) => {
+    windowStore.updatePinnedRows(rows)
+  })
+
   // 监听主题色更新事件
   window.ztools.onUpdatePrimaryColor((data: { primaryColor: string; customColor?: string }) => {
     console.log('更新主题色:', data)

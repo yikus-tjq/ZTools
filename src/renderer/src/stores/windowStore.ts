@@ -55,6 +55,10 @@ export const useWindowStore = defineStore('window', () => {
   // 自动清空配置
   const autoClear = ref<AutoClearOption>('immediately')
   const showRecentInSearch = ref(true)
+  // 最近使用显示行数
+  const recentRows = ref(2)
+  // 固定栏显示行数
+  const pinnedRows = ref(2)
 
   const theme = ref('system') // system, light, dark
   const primaryColor = ref('blue') // blue, purple, green, orange, red, pink, custom
@@ -154,6 +158,14 @@ export const useWindowStore = defineStore('window', () => {
   // 更新是否显示最近使用
   function updateShowRecentInSearch(value: boolean): void {
     showRecentInSearch.value = value
+  }
+
+  function updateRecentRows(rows: number): void {
+    recentRows.value = rows
+  }
+
+  function updatePinnedRows(rows: number): void {
+    pinnedRows.value = rows
   }
 
   function updateTheme(value: string): void {
@@ -450,6 +462,12 @@ export const useWindowStore = defineStore('window', () => {
         if (data.showRecentInSearch !== undefined) {
           showRecentInSearch.value = data.showRecentInSearch
         }
+        if (data.recentRows) {
+          recentRows.value = data.recentRows
+        }
+        if (data.pinnedRows) {
+          pinnedRows.value = data.pinnedRows
+        }
       } else {
         // 默认蓝色
         updatePrimaryColor('blue')
@@ -494,6 +512,10 @@ export const useWindowStore = defineStore('window', () => {
     updateAutoPaste,
     updateAutoClear,
     updateShowRecentInSearch,
+    recentRows,
+    pinnedRows,
+    updateRecentRows,
+    updatePinnedRows,
     updateTheme,
     updatePrimaryColor,
     updateCustomColor,

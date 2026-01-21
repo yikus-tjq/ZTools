@@ -438,6 +438,12 @@ window.ztools = {
         'internal:update-show-recent-in-search',
         showRecentInSearch
       ),
+    // 通知主渲染进程更新最近使用行数
+    updateRecentRows: async (rows) =>
+      await electron.ipcRenderer.invoke('internal:update-recent-rows', rows),
+    // 通知主渲染进程更新固定栏行数
+    updatePinnedRows: async (rows) =>
+      await electron.ipcRenderer.invoke('internal:update-pinned-rows', rows),
     // 通知主渲染进程更新主题色
     updatePrimaryColor: async (primaryColor, customColor) =>
       await electron.ipcRenderer.invoke('internal:update-primary-color', primaryColor, customColor),

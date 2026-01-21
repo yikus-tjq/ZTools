@@ -13,7 +13,7 @@
         :apps="displayApps"
         :selected-index="getAbsoluteIndexForSection('apps')"
         :empty-text="loading ? '正在加载应用...' : '未找到应用'"
-        :default-visible-rows="2"
+        :default-visible-rows="windowStore.recentRows"
         :draggable="false"
         @select="handleSelectApp"
         @contextmenu="handleAppContextMenu"
@@ -25,7 +25,7 @@
         title="已固定"
         :apps="pinnedApps"
         :selected-index="getAbsoluteIndexForSection('pinned')"
-        :default-visible-rows="2"
+        :default-visible-rows="windowStore.pinnedRows"
         :draggable="true"
         @select="handleSelectApp"
         @contextmenu="(app) => handleAppContextMenu(app, false, true)"
@@ -442,7 +442,7 @@ const pinnedApps = computed(() => {
 
 // 可见的最近使用应用（用于键盘导航）
 const visibleRecentApps = computed(() => {
-  const defaultVisibleCount = 9 * 2 // itemsPerRow * defaultVisibleRows（对应 CollapsibleList 的配置）
+  const defaultVisibleCount = 9 * (windowStore.recentRows || 2) // itemsPerRow * defaultVisibleRows
   if (isRecentExpanded.value || displayApps.value.length <= defaultVisibleCount) {
     return displayApps.value
   }
@@ -451,7 +451,7 @@ const visibleRecentApps = computed(() => {
 
 // 可见的固定应用（用于键盘导航）
 const visiblePinnedApps = computed(() => {
-  const defaultVisibleCount = 9 * 2 // itemsPerRow * defaultVisibleRows
+  const defaultVisibleCount = 9 * (windowStore.pinnedRows || 2) // itemsPerRow * defaultVisibleRows
   if (isPinnedExpanded.value || pinnedApps.value.length <= defaultVisibleCount) {
     return pinnedApps.value
   }

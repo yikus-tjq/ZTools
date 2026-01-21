@@ -246,6 +246,36 @@
       </div>
     </div>
 
+    <!-- 最近使用行数设置 -->
+    <div v-if="showRecentInSearch" class="setting-item sub-setting">
+      <div class="setting-label">
+        <span>最近使用显示行数</span>
+        <span class="setting-desc">设置最近使用列表显示的行数（每行9个）</span>
+      </div>
+      <div class="setting-control">
+        <Dropdown
+          v-model="recentRows"
+          :options="recentRowsOptions"
+          @change="handleRecentRowsChange"
+        />
+      </div>
+    </div>
+
+    <!-- 固定栏行数设置 -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <span>固定栏显示行数</span>
+        <span class="setting-desc">设置已固定应用列表显示的行数（每行9个）</span>
+      </div>
+      <div class="setting-control">
+        <Dropdown
+          v-model="pinnedRows"
+          :options="pinnedRowsOptions"
+          @change="handlePinnedRowsChange"
+        />
+      </div>
+    </div>
+
     <!-- 自动粘贴设置 -->
     <div class="setting-item">
       <div class="setting-label">
@@ -388,6 +418,20 @@ const autoBackToSearchOptions = [
   { label: '从不', value: 'never' }
 ]
 
+const recentRowsOptions = [
+  { label: '1行', value: 1 },
+  { label: '2行', value: 2 },
+  { label: '3行', value: 3 },
+  { label: '4行', value: 4 }
+]
+
+const pinnedRowsOptions = [
+  { label: '1行', value: 1 },
+  { label: '2行', value: 2 },
+  { label: '3行', value: 3 },
+  { label: '4行', value: 4 }
+]
+
 // 当前平台（与 window.ztools.getPlatform 返回类型保持一致）
 const platform = ref<'darwin' | 'win32' | 'linux'>('darwin')
 
@@ -405,6 +449,8 @@ const autoPaste = ref<AutoPasteOption>('off')
 const autoClear = ref<AutoClearOption>('immediately')
 const autoBackToSearch = ref<AutoBackToSearchOption>('never')
 const showRecentInSearch = ref(true)
+const recentRows = ref(2)
+const pinnedRows = ref(2)
 
 // 实际快捷键字符串
 const hotkey = ref('')
@@ -614,6 +660,30 @@ async function handleShowRecentInSearchChange(): Promise<void> {
     console.log('显示最近使用配置已更新:', showRecentInSearch.value)
   } catch (error) {
     console.error('保存显示最近使用配置失败:', error)
+  }
+}
+
+// 处理最近使用行数变化
+async function handleRecentRowsChange(): Promise<void> {
+  try {
+    await saveSettings()
+    // 通知主渲染进程更新
+    await window.ztools.internal.updateRecentRows(recentRows.value)
+    console.log('最近使用行数已更新:', recentRows.value)
+  } catch (error) {
+    console.error('保存最近使用行数配置失败:', error)
+  }
+}
+
+// 处理固定栏行数变化
+async function handlePinnedRowsChange(): Promise<void> {
+  try {
+    await saveSettings()
+    // 通知主渲染进程更新
+    await window.ztools.internal.updatePinnedRows(pinnedRows.value)
+    console.log('固定栏行数已更新:', pinnedRows.value)
+  } catch (error) {
+    console.error('保存固定栏行数配置失败:', error)
   }
 }
 
@@ -964,6 +1034,8 @@ async function loadSettings(): Promise<void> {
       autoClear.value = data.autoClear ?? 'immediately'
       autoBackToSearch.value = data.autoBackToSearch ?? 'never'
       showRecentInSearch.value = data.showRecentInSearch ?? true
+      recentRows.value = data.recentRows ?? 2
+      pinnedRows.value = data.pinnedRows ?? 2
       theme.value = data.theme ?? 'system'
       primaryColor.value = data.primaryColor ?? 'blue'
       // 窗口材质由主进程启动时保证一定有值，无需兜底
@@ -1015,6 +1087,8 @@ async function saveSettings(): Promise<void> {
       autoClear: autoClear.value,
       autoBackToSearch: autoBackToSearch.value,
       showRecentInSearch: showRecentInSearch.value,
+      recentRows: recentRows.value,
+      pinnedRows: pinnedRows.value,
       theme: theme.value,
       primaryColor: primaryColor.value,
       customColor: customColor.value,
