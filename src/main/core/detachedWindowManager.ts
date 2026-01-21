@@ -217,6 +217,7 @@ class DetachedWindowManager {
         // 如果需要自动聚焦子输入框，延迟聚焦搜索框（等待 DOM 渲染完成）
         if (options.autoFocusSubInput === true) {
           setTimeout(() => {
+            win.webContents.focus()
             win.webContents.send('focus-sub-input')
           }, 100) // 延迟 100ms，确保 Vue 组件已经渲染
         }
