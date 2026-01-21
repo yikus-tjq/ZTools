@@ -175,66 +175,55 @@ export class PluginsAPI {
   // 从ZIP安装插件（核心逻辑）
   private async _installPluginFromZip(zipPath: string): Promise<any> {
     await fs.mkdir(PLUGIN_DIR, { recursive: true })
-    const tempDir = path.join(app.getPath('temp'), 'ztools-plugin-temp')
-    await fs.mkdir(tempDir, { recursive: true })
-    const tempExtractPath = path.join(tempDir, `plugin-${Date.now()}`)
 
     try {
-      // 解压到临时目录
+      // 读取 ZIP 文件
       const zip = new AdmZip(zipPath)
-      zip.extractAllTo(tempExtractPath, true)
 
-      // 校验plugin.json
-      const pluginJsonPath = path.join(tempExtractPath, 'plugin.json')
-      try {
-        await fs.access(pluginJsonPath)
-      } catch {
-        await fs.rm(tempExtractPath, { recursive: true, force: true })
+      // 直接读取 plugin.json（不解压）
+      const pluginJsonContent = zip.readAsText('plugin.json')
+      if (!pluginJsonContent) {
         return { success: false, error: 'plugin.json 文件不存在' }
       }
 
-      // 读取配置
-      const pluginJsonContent = await fs.readFile(pluginJsonPath, 'utf-8')
+      // 解析配置
       let pluginConfig: any
       try {
         pluginConfig = JSON.parse(pluginJsonContent)
       } catch {
-        await fs.rm(tempExtractPath, { recursive: true, force: true })
         return { success: false, error: 'plugin.json 格式错误' }
       }
 
+      // 校验必填字段
       if (!pluginConfig.name) {
-        await fs.rm(tempExtractPath, { recursive: true, force: true })
         return { success: false, error: 'plugin.json 缺少 name 字段' }
       }
 
       const pluginName = pluginConfig.name
       const pluginPath = path.join(PLUGIN_DIR, pluginName)
 
-      // 检查是否已存在
+      // 检查目录是否已存在
       try {
         await fs.access(pluginPath)
-        await fs.rm(tempExtractPath, { recursive: true, force: true })
         return { success: false, error: '插件目录已存在' }
       } catch {
         // 不存在，继续
       }
 
+      // 检查插件是否已存在
       const existingPlugins = await this.getPlugins()
       if (existingPlugins.some((p: any) => p.name === pluginName)) {
-        await fs.rm(tempExtractPath, { recursive: true, force: true })
         return { success: false, error: '插件已存在' }
       }
 
       // 验证插件配置
       const validation = await this.validatePluginConfig(pluginConfig, existingPlugins)
       if (!validation.valid) {
-        await fs.rm(tempExtractPath, { recursive: true, force: true })
         return { success: false, error: validation.error }
       }
 
-      // 移动到最终目录
-      await fs.rename(tempExtractPath, pluginPath)
+      // 校验通过，解压到目标目录
+      zip.extractAllTo(pluginPath, true)
 
       // 保存到数据库
       const pluginInfo = {
@@ -286,15 +275,8 @@ export class PluginsAPI {
       this.mainWindow?.webContents.send('plugins-changed')
       return { success: true, plugin: pluginInfo }
     } catch (error: unknown) {
-      await fs.rm(tempExtractPath, { recursive: true, force: true })
       console.error('安装插件失败:', error)
       return { success: false, error: error instanceof Error ? error.message : '安装失败' }
-    } finally {
-      try {
-        await fs.rm(tempDir, { recursive: true, force: true })
-      } catch (e) {
-        console.error('清理临时目录失败:', e)
-      }
     }
   }
 
