@@ -134,6 +134,7 @@ declare global {
         updateAutoPaste: (autoPaste: string) => Promise<void>
         updateAutoClear: (autoClear: string) => Promise<void>
         updateAutoBackToSearch: (autoBackToSearch: string) => Promise<void>
+        updateShowRecentInSearch: (showRecentInSearch: boolean) => Promise<void>
         setTheme: (theme: string) => Promise<void>
         updatePrimaryColor: (primaryColor: string, customColor?: string) => Promise<void>
         setTrayIconVisible: (visible: boolean) => Promise<void>

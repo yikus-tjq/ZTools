@@ -212,6 +212,7 @@ declare global {
       onUpdateAvatar: (callback: (avatar: string) => void) => void
       onUpdateAutoPaste: (callback: (autoPaste: string) => void) => void
       onUpdateAutoClear: (callback: (autoClear: string) => void) => void
+      onUpdateShowRecentInSearch: (callback: (showRecentInSearch: boolean) => void) => void
       onUpdatePrimaryColor: (
         callback: (data: { primaryColor: string; customColor?: string }) => void
       ) => void

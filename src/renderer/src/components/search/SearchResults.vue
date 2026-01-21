@@ -7,6 +7,7 @@
     >
       <!-- 最近使用 -->
       <CollapsibleList
+        v-if="showRecentInSearch"
         v-model:expanded="isRecentExpanded"
         title="最近使用"
         :apps="displayApps"
@@ -172,6 +173,9 @@ const isSearchResultsExpanded = ref(false)
 const isBestMatchesExpanded = ref(false)
 const isRecommendationsExpanded = ref(false)
 const scrollContainerRef = ref<HTMLElement>()
+
+// 是否显示最近使用
+const showRecentInSearch = computed(() => windowStore.showRecentInSearch)
 
 // 最佳搜索结果（模糊搜索：应用、插件、系统设置）
 const bestSearchResults = computed(() => {

@@ -534,6 +534,11 @@ onMounted(async () => {
     windowStore.updateAutoClear(autoClear as any)
   })
 
+  // 监听显示最近使用配置更新事件
+  window.ztools.onUpdateShowRecentInSearch((showRecentInSearch: boolean) => {
+    windowStore.updateShowRecentInSearch(showRecentInSearch)
+  })
+
   // 监听主题色更新事件
   window.ztools.onUpdatePrimaryColor((data: { primaryColor: string; customColor?: string }) => {
     console.log('更新主题色:', data)

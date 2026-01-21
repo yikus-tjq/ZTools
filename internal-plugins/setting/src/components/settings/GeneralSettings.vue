@@ -228,6 +228,24 @@
       </div>
     </div>
 
+    <!-- 搜索框显示最近使用 -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <span>搜索框显示最近使用</span>
+        <span class="setting-desc">开启后搜索框将显示最近使用的应用</span>
+      </div>
+      <div class="setting-control">
+        <label class="toggle">
+          <input
+            v-model="showRecentInSearch"
+            type="checkbox"
+            @change="handleShowRecentInSearchChange"
+          />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
     <!-- 自动粘贴设置 -->
     <div class="setting-item">
       <div class="setting-label">
@@ -386,6 +404,7 @@ const avatar = ref(DEFAULT_AVATAR)
 const autoPaste = ref<AutoPasteOption>('off')
 const autoClear = ref<AutoClearOption>('immediately')
 const autoBackToSearch = ref<AutoBackToSearchOption>('never')
+const showRecentInSearch = ref(true)
 
 // 实际快捷键字符串
 const hotkey = ref('')
@@ -583,6 +602,18 @@ async function handleThemeChange(): Promise<void> {
     console.log('主题配置已更新:', theme.value)
   } catch (error) {
     console.error('更新主题配置失败:', error)
+  }
+}
+
+// 处理显示最近使用配置变化
+async function handleShowRecentInSearchChange(): Promise<void> {
+  try {
+    await saveSettings()
+    // 通知主渲染进程更新
+    await window.ztools.internal.updateShowRecentInSearch(showRecentInSearch.value)
+    console.log('显示最近使用配置已更新:', showRecentInSearch.value)
+  } catch (error) {
+    console.error('保存显示最近使用配置失败:', error)
   }
 }
 
@@ -932,6 +963,7 @@ async function loadSettings(): Promise<void> {
       autoPaste.value = data.autoPaste ?? 'off'
       autoClear.value = data.autoClear ?? 'immediately'
       autoBackToSearch.value = data.autoBackToSearch ?? 'never'
+      showRecentInSearch.value = data.showRecentInSearch ?? true
       theme.value = data.theme ?? 'system'
       primaryColor.value = data.primaryColor ?? 'blue'
       // 窗口材质由主进程启动时保证一定有值，无需兜底
@@ -982,6 +1014,7 @@ async function saveSettings(): Promise<void> {
       autoPaste: autoPaste.value,
       autoClear: autoClear.value,
       autoBackToSearch: autoBackToSearch.value,
+      showRecentInSearch: showRecentInSearch.value,
       theme: theme.value,
       primaryColor: primaryColor.value,
       customColor: customColor.value,

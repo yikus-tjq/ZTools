@@ -338,6 +338,19 @@ export class InternalPluginAPI {
       }
     )
 
+    // 通知主渲染进程更新显示最近使用配置
+    ipcMain.handle(
+      'internal:update-show-recent-in-search',
+      async (event, showRecentInSearch: boolean) => {
+        if (!requireInternalPlugin(this.pluginManager, event)) {
+          throw new PermissionDeniedError('internal:update-show-recent-in-search')
+        }
+        // 广播到主渲染进程
+        this.mainWindow?.webContents.send('update-show-recent-in-search', showRecentInSearch)
+        return { success: true }
+      }
+    )
+
     // 通知主渲染进程更新主题色
     ipcMain.handle(
       'internal:update-primary-color',

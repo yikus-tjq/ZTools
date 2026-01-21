@@ -54,6 +54,7 @@ export const useWindowStore = defineStore('window', () => {
 
   // 自动清空配置
   const autoClear = ref<AutoClearOption>('immediately')
+  const showRecentInSearch = ref(true)
 
   const theme = ref('system') // system, light, dark
   const primaryColor = ref('blue') // blue, purple, green, orange, red, pink, custom
@@ -148,6 +149,11 @@ export const useWindowStore = defineStore('window', () => {
   // 更新自动清空配置
   function updateAutoClear(value: AutoClearOption): void {
     autoClear.value = value
+  }
+
+  // 更新是否显示最近使用
+  function updateShowRecentInSearch(value: boolean): void {
+    showRecentInSearch.value = value
   }
 
   function updateTheme(value: string): void {
@@ -441,6 +447,9 @@ export const useWindowStore = defineStore('window', () => {
         if (data.acrylicDarkOpacity !== undefined) {
           acrylicDarkOpacity.value = data.acrylicDarkOpacity
         }
+        if (data.showRecentInSearch !== undefined) {
+          showRecentInSearch.value = data.showRecentInSearch
+        }
       } else {
         // 默认蓝色
         updatePrimaryColor('blue')
@@ -467,6 +476,7 @@ export const useWindowStore = defineStore('window', () => {
     subInputVisible,
     autoPaste,
     autoClear,
+    showRecentInSearch,
     theme,
     primaryColor,
     customColor,
@@ -483,6 +493,7 @@ export const useWindowStore = defineStore('window', () => {
     updateSubInputVisible,
     updateAutoPaste,
     updateAutoClear,
+    updateShowRecentInSearch,
     updateTheme,
     updatePrimaryColor,
     updateCustomColor,

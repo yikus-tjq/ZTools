@@ -226,7 +226,7 @@ window.ztools = {
 
     // 创建 Proxy 对象模拟 BrowserWindow
     const createProxy = (path = []) => {
-      return new Proxy(() => {}, {
+      return new Proxy(() => { }, {
         get: (target, prop) => {
           if (typeof prop !== 'string') return undefined
 
@@ -432,6 +432,12 @@ window.ztools = {
     // 通知主渲染进程更新自动返回搜索配置
     updateAutoBackToSearch: async (autoBackToSearch) =>
       await electron.ipcRenderer.invoke('internal:update-auto-back-to-search', autoBackToSearch),
+    // 通知主渲染进程更新显示最近使用配置
+    updateShowRecentInSearch: async (showRecentInSearch) =>
+      await electron.ipcRenderer.invoke(
+        'internal:update-show-recent-in-search',
+        showRecentInSearch
+      ),
     // 通知主渲染进程更新主题色
     updatePrimaryColor: async (primaryColor, customColor) =>
       await electron.ipcRenderer.invoke('internal:update-primary-color', primaryColor, customColor),

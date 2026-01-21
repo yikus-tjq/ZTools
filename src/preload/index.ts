@@ -132,6 +132,11 @@ const api = {
   onUpdateAutoClear: (callback: (autoClear: string) => void) => {
     ipcRenderer.on('update-auto-clear', (_event, autoClear) => callback(autoClear))
   },
+  onUpdateShowRecentInSearch: (callback: (showRecentInSearch: boolean) => void) => {
+    ipcRenderer.on('update-show-recent-in-search', (_event, showRecentInSearch) =>
+      callback(showRecentInSearch)
+    )
+  },
   onUpdatePrimaryColor: (
     callback: (data: { primaryColor: string; customColor?: string }) => void
   ) => {
@@ -380,6 +385,7 @@ declare global {
         callback: (data: { pluginPath: string; placeholder: string }) => void
       ) => void
       onUpdateSubInputVisible: (callback: (visible: boolean) => void) => void
+      onUpdateShowRecentInSearch: (callback: (showRecentInSearch: boolean) => void) => void
       // 数据库相关（主程序专用，直接操作 ZTOOLS 命名空间）
       dbPut: (key: string, data: any) => Promise<any>
       dbGet: (key: string) => Promise<any>
