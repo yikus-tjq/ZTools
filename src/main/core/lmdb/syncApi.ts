@@ -242,10 +242,23 @@ export class SyncApi {
           return createErrorResult('exception', '_id is required', id)
         }
 
-        // 验证版本
-        const currentRev = this.metaDb.get(id)
-        if (currentRev && rev && rev !== currentRev) {
-          return createErrorResult('conflict', 'Document update conflict', id)
+        // 验证版本（需要解析 JSON 格式的元数据）
+        const currentRevMeta = this.metaDb.get(id)
+        if (currentRevMeta && rev) {
+          let currentRev: string
+          // 解析元数据（可能是 JSON 字符串或纯字符串）
+          if (currentRevMeta.startsWith('{')) {
+            // 新格式：JSON 对象
+            const meta = safeJsonParse(currentRevMeta)
+            currentRev = meta._rev
+          } else {
+            // 旧格式：只有 _rev 字符串
+            currentRev = currentRevMeta
+          }
+
+          if (rev !== currentRev) {
+            return createErrorResult('conflict', 'Document update conflict', id)
+          }
         }
       }
 
