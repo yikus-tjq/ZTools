@@ -292,6 +292,7 @@ class WindowManager {
       {
         label: '重启',
         click: () => {
+          this.isQuitting = true
           app.relaunch()
           app.quit()
         }
