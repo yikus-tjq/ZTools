@@ -328,7 +328,12 @@ class DetachedWindowManager {
           break
         case 'open-devtools':
           if (!pluginView.webContents.isDestroyed()) {
-            pluginView.webContents.openDevTools({ mode: 'detach' })
+            // 切换开发者工具（打开/关闭）
+            if (pluginView.webContents.isDevToolsOpened()) {
+              pluginView.webContents.closeDevTools()
+            } else {
+              pluginView.webContents.openDevTools({ mode: 'detach' })
+            }
           }
           break
       }

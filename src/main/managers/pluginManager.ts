@@ -520,7 +520,7 @@ class PluginManager {
     }
   }
 
-  // 打开当前插件的开发者工具
+  // 切换当前插件的开发者工具（打开/关闭）
   public openPluginDevTools(): boolean {
     try {
       if (!this.pluginView || this.pluginView.webContents.isDestroyed()) {
@@ -528,11 +528,19 @@ class PluginManager {
         return false
       }
 
-      this.pluginView.webContents.openDevTools({ mode: 'detach' })
-      console.log('已打开插件开发者工具')
+      // 检查开发者工具是否已打开
+      if (this.pluginView.webContents.isDevToolsOpened()) {
+        // 如果已打开，关闭开发者工具
+        this.pluginView.webContents.closeDevTools()
+        console.log('已关闭插件开发者工具')
+      } else {
+        // 如果未打开，打开开发者工具
+        this.pluginView.webContents.openDevTools({ mode: 'detach' })
+        console.log('已打开插件开发者工具')
+      }
       return true
     } catch (error) {
-      console.error('打开开发者工具失败:', error)
+      console.error('切换开发者工具失败:', error)
       return false
     }
   }
