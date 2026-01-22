@@ -46,6 +46,7 @@ class WindowManager {
   private windowPositionsByDisplay: Record<number, { x: number; y: number }> = {}
   private autoBackToSearchTimer: NodeJS.Timeout | null = null // 自动返回搜索定时器
   private autoBackToSearchConfig: string = 'never' // 自动返回搜索配置
+  private lastFocusTarget: 'mainWindow' | 'plugin' | null = null // 窗口隐藏前的焦点状态
 
   /**
    * 获取鼠标所在显示器的工作区尺寸和位置
@@ -167,11 +168,17 @@ class WindowManager {
     })
 
     this.mainWindow.on('show', () => {
-      // 判断是插件
-      if (pluginManager.getCurrentPluginPath() !== null) {
-        // 让插件视图获取焦点
+      // 恢复上次的焦点状态
+      // 如果明确记录了上次聚焦在主窗口，则强制聚焦主窗口
+      if (this.lastFocusTarget === 'mainWindow') {
+        this.mainWindow?.webContents.focus()
+        // 通知渲染进程聚焦搜索框
+        this.mainWindow?.webContents.send('focus-search')
+      } else if (pluginManager.getCurrentPluginPath() !== null) {
+        // 如果有插件在显示（且上次不是主窗口），聚焦插件
         pluginManager.focusPluginView()
       } else {
+        // 否则聚焦主窗口
         this.mainWindow?.webContents.focus()
         // 通知渲染进程聚焦搜索框
         this.mainWindow?.webContents.send('focus-search')
@@ -334,6 +341,25 @@ class WindowManager {
   }
 
   /**
+   * 记录当前的焦点状态（在隐藏之前调用）
+   */
+  private recordFocusState(): void {
+    if (pluginManager.getCurrentPluginPath() !== null) {
+      // 检查插件视图是否有焦点
+      const pluginView = pluginManager.getCurrentPluginView()
+      if (pluginView && pluginView.webContents && pluginView.webContents.isFocused()) {
+        this.lastFocusTarget = 'plugin'
+      } else {
+        this.lastFocusTarget = 'mainWindow'
+      }
+    } else {
+      this.lastFocusTarget = 'mainWindow'
+    }
+
+    console.log('记录焦点状态:', this.lastFocusTarget)
+  }
+
+  /**
    * 切换窗口显示/隐藏
    */
   private toggleWindow(): void {
@@ -348,6 +374,10 @@ class WindowManager {
     if (isFocused && isVisible) {
       // 窗口已显示且聚焦 → 隐藏
       console.log('隐藏窗口')
+
+      // 记录当前的焦点状态（在隐藏之前）
+      this.recordFocusState()
+
       this.mainWindow.blur()
       this.mainWindow.hide()
       this.restorePreviousWindow()
@@ -463,6 +493,10 @@ class WindowManager {
    */
   public hideWindow(_restoreFocus: boolean = true): void {
     console.log('隐藏窗口', _restoreFocus)
+
+    // 记录当前的焦点状态（在隐藏之前）
+    this.recordFocusState()
+
     this.mainWindow?.hide()
     if (_restoreFocus) {
       this.restorePreviousWindow()
