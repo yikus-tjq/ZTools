@@ -402,6 +402,8 @@ window.ztools = {
     // ==================== 系统设置 API ====================
     setWindowOpacity: async (opacity) =>
       await electron.ipcRenderer.invoke('internal:set-window-opacity', opacity),
+    setWindowDefaultHeight: async (height) =>
+      await electron.ipcRenderer.invoke('internal:set-window-default-height', height),
     setWindowMaterial: async (material) =>
       await electron.ipcRenderer.invoke('internal:set-window-material', material),
     getWindowMaterial: async () =>

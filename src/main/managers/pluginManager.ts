@@ -6,6 +6,7 @@ import hideWindowHtml from '../../../resources/hideWindow.html?asset'
 
 import mainPreload from '../../../resources/preload.js?asset'
 import api from '../api'
+import { WINDOW_INITIAL_HEIGHT, WINDOW_DEFAULT_HEIGHT } from '../common/constants'
 import detachedWindowManager, { DETACHED_TITLEBAR_HEIGHT } from '../core/detachedWindowManager'
 import { GLOBAL_SCROLLBAR_CSS } from '../core/globalStyles'
 import { isInternalPlugin } from '../core/internalPlugins'
@@ -28,14 +29,32 @@ interface PluginViewInfo {
 }
 class PluginManager {
   private mainWindow: BrowserWindow | null = null
+  private windowManager: any = null // 窗口管理器实例
   private pluginView: WebContentsView | null = null
   private currentPluginPath: string | null = null
   private pluginViews: Array<PluginViewInfo> = []
   // 记录最近一次插件 ESC 触发的时间，用于短时间内抑制主窗口 hide
   private lastPluginEscTime: number | null = null
+  // 插件默认高度（可配置）
+  private pluginDefaultHeight: number = WINDOW_DEFAULT_HEIGHT - WINDOW_INITIAL_HEIGHT
 
-  public init(mainWindow: BrowserWindow): void {
+  /**
+   * 获取插件默认高度
+   */
+  public getPluginDefaultHeight(): number {
+    return this.pluginDefaultHeight
+  }
+
+  /**
+   * 设置插件默认高度
+   */
+  public setPluginDefaultHeight(height: number): void {
+    this.pluginDefaultHeight = Math.max(200, height) // 最小 200px
+  }
+
+  public init(mainWindow: BrowserWindow, windowManager?: any): void {
     this.mainWindow = mainWindow
+    this.windowManager = windowManager
   }
 
   // 创建或更新插件视图
@@ -76,11 +95,16 @@ class PluginManager {
       if (isConfigHeadless) {
         this.setExpendHeight(0, false)
       } else {
-        const viewHeight = cached.height || 600 - 59
+        const viewHeight = cached.height || this.pluginDefaultHeight
         this.setExpendHeight(viewHeight, false)
       }
 
       this.currentPluginPath = pluginPath
+
+      // 切换到插件模式
+      if (this.windowManager) {
+        this.windowManager.setPluginMode()
+      }
 
       // 读取插件配置以获取logo和name
       try {
@@ -246,23 +270,22 @@ class PluginManager {
 
       if (isConfigHeadless) {
         // 无界面插件 (Config)，初始设置为最小高度
-        this.pluginView.setBounds({ x: 0, y: 59, width: windowWidth, height: 0 })
-        api.resizeWindow(59)
+        this.pluginView.setBounds({ x: 0, y: WINDOW_INITIAL_HEIGHT, width: windowWidth, height: 0 })
+        api.resizeWindow(WINDOW_INITIAL_HEIGHT)
       } else {
         // 有界面插件，设置在主窗口搜索框内容的下方
-        const mainContentHeight = 59
-        const viewHeight = 600 - mainContentHeight
+        const viewHeight = this.pluginDefaultHeight
         initialViewHeight = viewHeight
 
         this.pluginView.setBounds({
           x: 0,
-          y: mainContentHeight,
+          y: WINDOW_INITIAL_HEIGHT,
           width: windowWidth,
           height: 0
         })
 
         // 初始只显示搜索框高度，待插件加载完成后恢复
-        api.resizeWindow(mainContentHeight)
+        api.resizeWindow(WINDOW_INITIAL_HEIGHT)
       }
 
       // 缓存新创建的视图 (提前缓存，以便 setSubInput 能找到)
@@ -277,6 +300,11 @@ class PluginManager {
       }
       this.pluginViews.push(pluginInfo)
       this.currentPluginPath = pluginPath
+
+      // 切换到插件模式
+      if (this.windowManager) {
+        this.windowManager.setPluginMode()
+      }
 
       // 提前通知渲染进程插件已打开
       this.mainWindow?.webContents.send('plugin-opened', {
@@ -344,6 +372,11 @@ class PluginManager {
       // 将当前引用清空，但缓存仍保留
       this.pluginView = null
       this.currentPluginPath = null
+
+      // 切换回搜索模式
+      if (this.windowManager) {
+        this.windowManager.setSearchMode()
+      }
 
       // 通知渲染进程插件已关闭
       this.mainWindow.webContents.send('plugin-closed')
@@ -556,7 +589,7 @@ class PluginManager {
     console.log('设置插件高度:', height)
 
     // 搜索框高度
-    const mainContentHeight = 59
+    const mainContentHeight = WINDOW_INITIAL_HEIGHT
     // 计算总窗口高度
     const totalHeight = height + mainContentHeight
 
@@ -618,7 +651,7 @@ class PluginManager {
   public updatePluginViewBounds(width: number, height: number): void {
     if (!this.pluginView) return
 
-    const mainContentHeight = 59
+    const mainContentHeight = WINDOW_INITIAL_HEIGHT
     const viewHeight = height - mainContentHeight
 
     if (viewHeight > 0) {
@@ -679,10 +712,10 @@ class PluginManager {
       // 有界面插件
       // 恢复高度: 优先使用缓存的高度，如果没有则使用默认高度
       const cached = this.pluginViews.find((v) => v.path === pluginPath)
-      let targetHeight = cached?.height || 600 - 59
+      let targetHeight = cached?.height || this.pluginDefaultHeight
 
       // 如果目标高度无效（可能被错误置为0），重置为默认值
-      if (targetHeight <= 0) targetHeight = 600 - 59
+      if (targetHeight <= 0) targetHeight = this.pluginDefaultHeight
 
       this.setExpendHeight(targetHeight, true)
 
@@ -908,7 +941,7 @@ class PluginManager {
       })
 
       const storedSize = await this.getStoredDetachedSize(pluginConfig.name)
-      const defaultViewHeight = 600 - DETACHED_TITLEBAR_HEIGHT
+      const defaultViewHeight = this.pluginDefaultHeight
 
       // 获取默认窗口大小（若有历史记录则优先使用）
       const windowWidth = storedSize?.width ?? 800
@@ -983,7 +1016,7 @@ class PluginManager {
       const pluginConfig = JSON.parse(fsSync.readFileSync(pluginJsonPath, 'utf-8'))
 
       const storedSize = await this.getStoredDetachedSize(pluginConfig.name)
-      const defaultViewHeight = 600 - DETACHED_TITLEBAR_HEIGHT
+      const defaultViewHeight = this.pluginDefaultHeight
 
       // 若存在历史尺寸则优先使用
       const windowWidth = storedSize?.width ?? 800

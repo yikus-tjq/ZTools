@@ -223,12 +223,12 @@ app.whenReady().then(async () => {
   }
 
   // 创建主窗口
-  const mainWindow = windowManager.createWindow()
+  const mainWindow = await windowManager.createWindow()
 
   // 初始化 API 和插件管理器
   if (mainWindow) {
     api.init(mainWindow, pluginManager)
-    pluginManager.init(mainWindow)
+    pluginManager.init(mainWindow, windowManager)
     // 初始化应用目录监听器
     appWatcher.init(mainWindow)
   }
@@ -263,9 +263,9 @@ app.on('before-quit', (event) => {
   }
 })
 
-app.on('activate', () => {
+app.on('activate', async () => {
   if (BrowserWindow.getAllWindows().length === 0) {
-    windowManager.createWindow()
+    await windowManager.createWindow()
   }
 })
 

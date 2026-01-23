@@ -233,6 +233,13 @@ export class InternalPluginAPI {
       return await (windowAPI as any).setWindowOpacity(opacity)
     })
 
+    ipcMain.handle('internal:set-window-default-height', async (event, height: number) => {
+      if (!requireInternalPlugin(this.pluginManager, event)) {
+        throw new PermissionDeniedError('internal:set-window-default-height')
+      }
+      return await (settingsAPI as any).setWindowDefaultHeight(height)
+    })
+
     ipcMain.handle('internal:select-avatar', async (event) => {
       if (!requireInternalPlugin(this.pluginManager, event)) {
         throw new PermissionDeniedError('internal:select-avatar')

@@ -87,6 +87,11 @@ export class SettingsAPI {
           await proxyManager.applyProxyToDefaultSession()
           console.log('启动时应用代理配置:', { enabled: data.proxyEnabled, url: data.proxyUrl })
         }
+        // 应用窗口默认高度设置
+        if (data.windowDefaultHeight !== undefined) {
+          this.pluginManager.setPluginDefaultHeight(data.windowDefaultHeight)
+          console.log('启动时应用插件默认高度设置:', data.windowDefaultHeight)
+        }
       }
 
       // 窗口位置现在由 windowManager.moveWindowToCursor() 处理
@@ -302,6 +307,18 @@ export class SettingsAPI {
       return { success: true }
     } catch (error: unknown) {
       console.error('设置代理配置失败:', error)
+      return { success: false, error: error instanceof Error ? error.message : '未知错误' }
+    }
+  }
+
+  // 设置窗口默认高度
+  public setWindowDefaultHeight(height: number): { success: boolean; error?: string } {
+    try {
+      this.pluginManager.setPluginDefaultHeight(height)
+      console.log('插件默认高度已更新:', height)
+      return { success: true }
+    } catch (error: unknown) {
+      console.error('设置插件默认高度失败:', error)
       return { success: false, error: error instanceof Error ? error.message : '未知错误' }
     }
   }

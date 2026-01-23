@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron'
-import { MAX_WINDOW_HEIGHT, WINDOW_INITIAL_HEIGHT } from '../../common/constants.js'
+import { WINDOW_INITIAL_HEIGHT } from '../../common/constants.js'
 import windowManager from '../../managers/windowManager.js'
 
 // 窗口材质类型
@@ -75,14 +75,17 @@ export class WindowAPI {
   public resizeWindow(height: number): void {
     if (this.mainWindow) {
       const [width] = this.mainWindow.getSize()
+      const [x, y] = this.mainWindow.getPosition()
       // 限制高度范围: 最小初始高度, 最大高度
-      const newHeight = Math.max(WINDOW_INITIAL_HEIGHT, Math.min(height, MAX_WINDOW_HEIGHT))
+      const newHeight = Math.max(WINDOW_INITIAL_HEIGHT, height)
 
-      // 临时启用 resizable 以允许代码调整大小
-      this.mainWindow.setResizable(true)
-      this.mainWindow.setSize(width, newHeight)
-      // 立即禁用 resizable，防止用户手动调整
-      this.mainWindow.setResizable(false)
+      // 使用 setBounds 保持窗口顶部位置不变，只向下扩展
+      this.mainWindow.setBounds({
+        x,
+        y,
+        width,
+        height: newHeight
+      })
 
       // 如果当前处于锁定状态，更新锁定的尺寸
       if (this.lockedSize) {

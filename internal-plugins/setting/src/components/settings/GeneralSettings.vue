@@ -51,6 +51,47 @@
       </div>
     </div>
 
+    <!-- 窗口默认高度设置 -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <span>插件默认高度</span>
+        <span class="setting-desc">设置进入插件时的默认高度（像素）</span>
+      </div>
+      <div class="setting-control">
+        <input
+          v-model.number="windowDefaultHeight"
+          type="number"
+          class="input"
+          placeholder="600"
+          min="200"
+          @blur="handleWindowDefaultHeightChange"
+          @keyup.enter="handleWindowDefaultHeightChange"
+        />
+        <button
+          v-if="windowDefaultHeight !== 541"
+          class="btn btn-icon"
+          title="重置"
+          @click="resetWindowDefaultHeight"
+        >
+          <svg
+            width="20"
+            height="20"
+            viewBox="1 0 18 18"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M14.5 9C14.5 11.4853 12.4853 13.5 10 13.5C7.51472 13.5 5.5 11.4853 5.5 9C5.5 6.51472 7.51472 4.5 10 4.5C11.6569 4.5 13.0943 5.41421 13.8536 6.75M14 4V7H11"
+              stroke="currentColor"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+
     <!-- 主题设置 -->
     <div class="setting-item">
       <div class="setting-label">
@@ -491,6 +532,9 @@ const hotkey = ref('')
 // 不透明度设置
 const opacity = ref(1)
 
+// 插件默认高度设置
+const windowDefaultHeight = ref(541)
+
 // 托盘图标显示设置
 const showTrayIcon = ref(true)
 
@@ -577,6 +621,34 @@ async function handleOpacityChange(): Promise<void> {
     await saveSettings()
   } catch (error) {
     console.error('设置窗口不透明度失败:', error)
+  }
+}
+
+// 处理窗口默认高度变化
+async function handleWindowDefaultHeightChange(): Promise<void> {
+  try {
+    // 验证输入值
+    if (!windowDefaultHeight.value || windowDefaultHeight.value < 200) {
+      windowDefaultHeight.value = 541
+    }
+    await saveSettings()
+    // 通知主进程更新窗口默认高度
+    await window.ztools.internal.setWindowDefaultHeight(windowDefaultHeight.value)
+    console.log('插件默认高度已更新:', windowDefaultHeight.value)
+  } catch (error) {
+    console.error('设置插件默认高度失败:', error)
+  }
+}
+
+// 重置窗口默认高度
+async function resetWindowDefaultHeight(): Promise<void> {
+  try {
+    windowDefaultHeight.value = 541
+    await saveSettings()
+    await window.ztools.internal.setWindowDefaultHeight(541)
+    console.log('插件默认高度已重置')
+  } catch (error) {
+    console.error('重置插件默认高度失败:', error)
   }
 }
 
@@ -1115,6 +1187,7 @@ async function loadSettings(): Promise<void> {
 
     if (data) {
       opacity.value = data.opacity ?? 1
+      windowDefaultHeight.value = data.windowDefaultHeight ?? 541
       hotkey.value = data.hotkey ?? defaultHotkey.value
       showTrayIcon.value = data.showTrayIcon ?? true
       placeholder.value = data.placeholder ?? DEFAULT_PLACEHOLDER
@@ -1170,8 +1243,14 @@ async function saveSettings(): Promise<void> {
     // 只有自定义头像才保存到数据库，默认头像不保存
     const avatarToSave = avatar.value === defaultAvatar ? undefined : avatar.value
 
+    // 重新读取配置获取windowWidth
+    const data = await window.ztools.internal.dbGet('settings-general')
+    const windowWidth = data?.windowWidth ?? 800
+
     await window.ztools.internal.dbPut('settings-general', {
       opacity: opacity.value,
+      windowDefaultHeight: windowDefaultHeight.value,
+      windowWidth: windowWidth,
       hotkey: hotkey.value,
       placeholder: placeholder.value,
       avatar: avatarToSave,

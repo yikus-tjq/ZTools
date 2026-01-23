@@ -124,6 +124,7 @@ declare global {
 
         // 窗口和设置
         setWindowOpacity: (opacity: number) => Promise<void>
+        setWindowDefaultHeight: (height: number) => Promise<void>
         setWindowMaterial: (material: 'mica' | 'acrylic' | 'none') => Promise<{ success: boolean }>
         getWindowMaterial: () => Promise<'mica' | 'acrylic' | 'none'>
         onUpdateWindowMaterial: (callback: (material: 'mica' | 'acrylic' | 'none') => void) => void
