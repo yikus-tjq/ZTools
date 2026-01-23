@@ -116,3 +116,118 @@ jobs:
             dist/*.dmg
             dist/*.zip
             latest.yml
+
+      # 安装 ossutil
+      - name: Setup ossutil
+        run: |
+          wget https://gosspublic.alicdn.com/ossutil/1.7.18/ossutil-v1.7.18-linux-amd64.zip
+          unzip ossutil-v1.7.18-linux-amd64.zip
+          chmod +x ossutil-v1.7.18-linux-amd64/ossutil
+          sudo mv ossutil-v1.7.18-linux-amd64/ossutil /usr/local/bin/ossutil
+
+      # 配置 ossutil
+      - name: Configure ossutil
+        run: |
+          ossutil config -e oss-cn-beijing.aliyuncs.com -i ${{ secrets.ALIYUN_OSS_ACCESS_KEY_ID }} -k ${{ secrets.ALIYUN_OSS_ACCESS_KEY_SECRET }}
+
+      # 上传到阿里云 OSS
+      - name: Upload to Aliyun OSS
+        run: |
+          # 上传函数，支持重试和超时
+          upload_file() {
+            local file=$1
+            local target=$2
+            local allow_overwrite=$3  # true/false
+            local max_retries=3
+            local timeout=30  # 30秒超时
+
+            for i in $(seq 1 $max_retries); do
+              echo "  尝试 $i/$max_retries: $(basename "$file")"
+
+              # 使用 timeout 命令限制执行时间，添加 --jobs 参数提高上传速度
+              if [ "$allow_overwrite" = "true" ]; then
+                if timeout $timeout ossutil cp "$file" "$target" -f --jobs 3 2>&1; then
+                  echo "  ✓ 上传成功: $(basename "$file")"
+                  return 0
+                fi
+              else
+                if timeout $timeout ossutil cp "$file" "$target" --jobs 3 2>&1; then
+                  echo "  ✓ 上传成功: $(basename "$file")"
+                  return 0
+                fi
+              fi
+
+              echo "  ✗ 上传失败，错误码: $?"
+              if [ $i -lt $max_retries ]; then
+                echo "  等待 5 秒后重试..."
+                sleep 5
+              fi
+            done
+
+            echo "  ✗✗✗ $(basename "$file") 上传失败，已重试 $max_retries 次"
+            return 1
+          }
+
+          # 统计
+          success_count=0
+          fail_count=0
+          failed_files=()
+
+          # 上传更新包（只上传 update-*.zip 文件）
+          echo ""
+          echo "========== 开始上传更新包 =========="
+          zip_count=$(ls -1 dist/update-*.zip 2>/dev/null | wc -l)
+          echo "发现 $zip_count 个更新包"
+
+          for file in dist/update-*.zip; do
+            if [ -f "$file" ]; then
+              target="oss://ztools-center/updater/$(basename "$file")"
+
+              upload_file "$file" "$target" "true" || result=$?
+              result=${result:-0}
+
+              if [ $result -eq 0 ]; then
+                success_count=$((success_count + 1))
+              else
+                fail_count=$((fail_count + 1))
+                failed_files+=("$(basename "$file")")
+              fi
+
+              # 重置 result 变量
+              result=0
+            fi
+          done
+
+          # 上传 latest.yml 文件（允许覆盖）
+          echo ""
+          echo "========== 上传 latest.yml 文件 =========="
+          if [ -f "latest.yml" ]; then
+            upload_file "latest.yml" "oss://ztools-center/updater/latest.yml" "true" || result=$?
+            result=${result:-0}
+            if [ $result -eq 0 ]; then
+              success_count=$((success_count + 1))
+            else
+              fail_count=$((fail_count + 1))
+              failed_files+=("latest.yml")
+            fi
+          fi
+
+          # 输出结果
+          echo ""
+          echo "========================================="
+          echo "上传完成！"
+          echo "成功: $success_count 个文件"
+          echo "失败: $fail_count 个文件"
+
+          if [ $fail_count -gt 0 ]; then
+            echo ""
+            echo "失败的文件列表:"
+            for failed_file in "${failed_files[@]}"; do
+              echo "  - $failed_file"
+            done
+            echo ""
+            echo "⚠️  部分文件上传失败，请检查日志"
+            exit 1
+          else
+            echo "✅ 所有文件已成功上传到阿里云 OSS"
+          fi
