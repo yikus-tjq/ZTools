@@ -42,18 +42,17 @@ class ProxyManager {
    */
   public async applyProxyToSession(sess: Electron.Session, name?: string): Promise<void> {
     if (!this.currentConfig.enabled || !this.currentConfig.proxyRules) {
-      // 清除代理
+      // 清除自定义代理配置，恢复使用系统代理
       await sess.setProxy({
-        proxyRules: '',
-        proxyBypassRules: ''
+        mode: 'system'  // 使用系统代理
       })
       if (name) {
-        console.log(`已清除 ${name} 的代理配置`)
+        console.log(`${name} 已切换到系统代理`)
       }
       return
     }
 
-    // 应用代理
+    // 应用自定义代理
     // 绕过规则：使用 Chromium 的代理绕过规则语法
     // 参考：https://source.chromium.org/chromium/chromium/src/+/main:net/docs/proxy.md
     const bypassRules = [
@@ -69,7 +68,7 @@ class ProxyManager {
     })
 
     if (name) {
-      console.log(`${name} 已应用代理配置: ${this.currentConfig.proxyRules}`)
+      console.log(`${name} 已应用自定义代理: ${this.currentConfig.proxyRules}`)
       console.log(`绕过规则: ${bypassRules}`)
     }
   }
@@ -78,17 +77,19 @@ class ProxyManager {
    * 应用代理配置到默认 session 并清理缓存
    */
   public async applyProxyToDefaultSession(): Promise<void> {
-    // 清理 HTTP 缓存
-    console.log('清理 HTTP 缓存...')
-    await session.defaultSession.clearCache()
-    console.log('HTTP 缓存已清理')
+    // 只有在启用自定义代理时才清理缓存
+    if (this.currentConfig.enabled && this.currentConfig.proxyRules) {
+      console.log('清理 HTTP 缓存...')
+      await session.defaultSession.clearCache()
+      console.log('HTTP 缓存已清理')
+    }
 
     // 应用代理
     await this.applyProxyToSession(session.defaultSession, '主程序')
 
     // 验证代理配置是否生效
     if (this.currentConfig.enabled && this.currentConfig.proxyRules) {
-      // 测试外部地址（应该走代理）
+      // 测试外部地址（应该走自定义代理）
       const externalProxy = await session.defaultSession.resolveProxy(
         'https://ztools-center.oss-cn-beijing.aliyuncs.com'
       )
@@ -100,6 +101,12 @@ class ProxyManager {
 
       const loopbackProxy = await session.defaultSession.resolveProxy('http://127.0.0.1:5174')
       console.log('127.0.0.1:5174 代理解析:', loopbackProxy)
+    } else {
+      // 测试系统代理是否生效
+      const externalProxy = await session.defaultSession.resolveProxy(
+        'https://ztools-center.oss-cn-beijing.aliyuncs.com'
+      )
+      console.log('使用系统代理，外部地址代理解析:', externalProxy)
     }
   }
 
