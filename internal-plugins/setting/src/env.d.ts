@@ -142,6 +142,10 @@ declare global {
         setTrayIconVisible: (visible: boolean) => Promise<void>
         setLaunchAtLogin: (enable: boolean) => Promise<void>
         getLaunchAtLogin: () => Promise<boolean>
+        setProxyConfig: (config: { enabled: boolean; url: string }) => Promise<{
+          success: boolean
+          error?: string
+        }>
 
         // 系统信息
         getAppVersion: () => Promise<string>

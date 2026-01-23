@@ -3,6 +3,7 @@ import { getCurrentShortcut, updateShortcut } from '../../index.js'
 
 import databaseAPI from '../shared/database'
 import windowManager from '../../managers/windowManager.js'
+import proxyManager from '../../managers/proxyManager.js'
 
 /**
  * 设置管理API - 主程序专用
@@ -75,6 +76,16 @@ export class SettingsAPI {
         if (data.autoBackToSearch) {
           await windowManager.updateAutoBackToSearch(data.autoBackToSearch)
           console.log('启动时应用自动返回搜索设置:', data.autoBackToSearch)
+        }
+        // 应用代理配置
+        if (data.proxyEnabled !== undefined && data.proxyUrl !== undefined) {
+          proxyManager.setProxyConfig({
+            enabled: data.proxyEnabled,
+            url: data.proxyUrl
+          })
+          // 应用全局代理
+          await proxyManager.applyProxyToDefaultSession()
+          console.log('启动时应用代理配置:', { enabled: data.proxyEnabled, url: data.proxyUrl })
         }
       }
 
@@ -274,6 +285,25 @@ export class SettingsAPI {
     const count = this.recordingShortcuts.length
     this.recordingShortcuts = []
     console.log(`已清理 ${count} 个临时快捷键`)
+  }
+
+  // 设置代理配置
+  public async setProxyConfig(config: {
+    enabled: boolean
+    url: string
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      proxyManager.setProxyConfig(config)
+      console.log('代理配置已更新:', config)
+
+      // 应用全局代理配置
+      await proxyManager.applyProxyToDefaultSession()
+
+      return { success: true }
+    } catch (error: unknown) {
+      console.error('设置代理配置失败:', error)
+      return { success: false, error: error instanceof Error ? error.message : '未知错误' }
+    }
   }
 }
 

@@ -285,6 +285,17 @@ export class InternalPluginAPI {
       return await (settingsAPI as any).getLaunchAtLogin()
     })
 
+    // 设置代理配置
+    ipcMain.handle(
+      'internal:set-proxy-config',
+      async (event, config: { enabled: boolean; url: string }) => {
+        if (!requireInternalPlugin(this.pluginManager, event)) {
+          throw new PermissionDeniedError('internal:set-proxy-config')
+        }
+        return await (settingsAPI as any).setProxyConfig(config)
+      }
+    )
+
     // 通知主渲染进程更新搜索框提示文字
     ipcMain.handle('internal:update-placeholder', async (event, placeholder: string) => {
       if (!requireInternalPlugin(this.pluginManager, event)) {

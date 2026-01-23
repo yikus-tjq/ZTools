@@ -2,6 +2,7 @@ import { BrowserWindow, BrowserWindowConstructorOptions, session } from 'electro
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import mainPreload from '../../../resources/preload.js?asset'
+import proxyManager from '../managers/proxyManager'
 import { GLOBAL_SCROLLBAR_CSS } from './globalStyles'
 
 /**
@@ -51,6 +52,11 @@ class PluginWindowManager {
     sess.registerPreloadScript({
       type: 'frame',
       filePath: mainPreload
+    })
+
+    // 应用代理配置到插件 session
+    proxyManager.applyProxyToSession(sess, `插件窗口 ${pluginName}`).catch((error) => {
+      console.error(`插件窗口 ${pluginName} 应用代理配置失败:`, error)
     })
 
     // 合并配置

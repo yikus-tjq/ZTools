@@ -340,6 +340,39 @@
         </label>
       </div>
     </div>
+
+    <!-- 代理设置 -->
+    <div class="setting-item">
+      <div class="setting-label">
+        <span>网络代理</span>
+        <span class="setting-desc">配置 HTTP/HTTPS 代理服务器</span>
+      </div>
+      <div class="setting-control">
+        <label class="toggle">
+          <input v-model="proxyEnabled" type="checkbox" @change="handleProxyEnabledChange" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 代理地址设置 -->
+    <div v-if="proxyEnabled" class="setting-item sub-setting">
+      <div class="setting-label">
+        <span>代理地址</span>
+        <span class="setting-desc">格式: http://host:port 或 socks5://host:port</span>
+      </div>
+      <div class="setting-control">
+        <input
+          v-model="proxyUrl"
+          type="text"
+          class="input"
+          placeholder="例如: http://127.0.0.1:7890"
+          @blur="handleProxyUrlChange"
+          @keyup.enter="handleProxyUrlChange"
+        />
+      </div>
+    </div>
+
     <!-- 软件更新 -->
     <div class="setting-item">
       <div class="setting-label">
@@ -463,6 +496,10 @@ const showTrayIcon = ref(true)
 
 // 开机启动设置
 const launchAtLogin = ref(false)
+
+// 代理设置
+const proxyEnabled = ref(false)
+const proxyUrl = ref('')
 
 // 窗口材质设置
 const windowMaterial = ref<'mica' | 'acrylic' | 'none'>('none')
@@ -822,6 +859,58 @@ async function handleLaunchAtLoginChange(): Promise<void> {
   }
 }
 
+// 处理代理开关变化
+async function handleProxyEnabledChange(): Promise<void> {
+  try {
+    await saveSettings()
+    // 通知主进程更新代理配置
+    await window.ztools.internal.setProxyConfig({
+      enabled: proxyEnabled.value,
+      url: proxyUrl.value
+    })
+    console.log('代理开关已更新:', proxyEnabled.value)
+    info(proxyEnabled.value ? '代理已启用' : '代理已禁用')
+  } catch (error) {
+    console.error('更新代理开关失败:', error)
+    // 恢复状态
+    proxyEnabled.value = !proxyEnabled.value
+    error('更新代理开关失败')
+  }
+}
+
+// 处理代理地址变化
+async function handleProxyUrlChange(): Promise<void> {
+  try {
+    // 验证代理地址格式
+    if (proxyUrl.value && !isValidProxyUrl(proxyUrl.value)) {
+      error('代理地址格式不正确，请使用 http://host:port 或 socks5://host:port 格式')
+      return
+    }
+
+    await saveSettings()
+    // 通知主进程更新代理配置
+    await window.ztools.internal.setProxyConfig({
+      enabled: proxyEnabled.value,
+      url: proxyUrl.value
+    })
+    console.log('代理地址已更新:', proxyUrl.value)
+    info('代理地址已更新')
+  } catch (err: any) {
+    console.error('更新代理地址失败:', err)
+    error(`更新代理地址失败: ${err.message || '未知错误'}`)
+  }
+}
+
+// 验证代理 URL 格式
+function isValidProxyUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return ['http:', 'https:', 'socks5:', 'socks4:'].includes(parsed.protocol)
+  } catch {
+    return false
+  }
+}
+
 // 获取应用版本
 async function getAppVersion(): Promise<void> {
   try {
@@ -1042,6 +1131,9 @@ async function loadSettings(): Promise<void> {
       windowMaterial.value = data.windowMaterial
       acrylicLightOpacity.value = data.acrylicLightOpacity ?? 78
       acrylicDarkOpacity.value = data.acrylicDarkOpacity ?? 50
+      // 代理配置
+      proxyEnabled.value = data.proxyEnabled ?? false
+      proxyUrl.value = data.proxyUrl ?? ''
 
       // 加载自定义颜色
       if (data.customColor) {
@@ -1095,7 +1187,9 @@ async function saveSettings(): Promise<void> {
       showTrayIcon: showTrayIcon.value,
       windowMaterial: windowMaterial.value,
       acrylicLightOpacity: acrylicLightOpacity.value,
-      acrylicDarkOpacity: acrylicDarkOpacity.value
+      acrylicDarkOpacity: acrylicDarkOpacity.value,
+      proxyEnabled: proxyEnabled.value,
+      proxyUrl: proxyUrl.value
     })
   } catch (error) {
     console.error('保存设置失败:', error)
@@ -1125,6 +1219,12 @@ onMounted(() => {
   align-items: center;
   padding: 20px 0;
   border-bottom: 1px solid var(--divider-color);
+}
+
+/* 子设置项（缩进显示） */
+.sub-setting {
+  padding-left: 20px;
+  background: var(--hover-bg);
 }
 
 .setting-label {

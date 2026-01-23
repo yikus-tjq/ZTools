@@ -1,4 +1,4 @@
-import { net } from 'electron'
+import { net, session } from 'electron'
 import { IncomingMessage } from 'electron'
 
 export interface HttpRequestOptions {
@@ -23,6 +23,8 @@ export interface HttpResponse {
 
 /**
  * 使用 Electron net.request 发送 HTTP 请求
+ * 注意: 代理配置已在全局 session 上设置，所有请求自动使用代理
+ * 默认禁用缓存，确保每次都获取最新数据
  */
 export function httpRequest(url: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {
   return new Promise((resolve, reject) => {
@@ -34,6 +36,14 @@ export function httpRequest(url: string, options: HttpRequestOptions = {}): Prom
       validateStatus = (status) => status >= 200 && status < 300
     } = options
 
+    // 默认禁用缓存的请求头（用户传入的 headers 可以覆盖）
+    const defaultHeaders = {
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      ...headers // 用户自定义的 headers 会覆盖默认值
+    }
+
     // 处理重定向计数
     let redirectCount = 0
     let finalUrl = url
@@ -42,11 +52,12 @@ export function httpRequest(url: string, options: HttpRequestOptions = {}): Prom
       const request = net.request({
         method,
         url: requestUrl,
-        redirect: 'manual' // 手动处理重定向
+        redirect: 'manual', // 手动处理重定向
+        session: session.defaultSession // 显式指定使用 defaultSession（确保代理配置生效）
       })
 
-      // 设置请求头
-      Object.entries(headers).forEach(([key, value]) => {
+      // 设置请求头（包含默认的禁用缓存头）
+      Object.entries(defaultHeaders).forEach(([key, value]) => {
         request.setHeader(key, value)
       })
 

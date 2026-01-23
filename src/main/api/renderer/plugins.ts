@@ -8,6 +8,7 @@ import { isInternalPlugin } from '../../core/internalPlugins'
 import lmdbInstance from '../../core/lmdb/lmdbInstance'
 import { sleep } from '../../utils/common.js'
 import { downloadFile } from '../../utils/download.js'
+import { httpGet } from '../../utils/httpRequest.js'
 import { pluginFeatureAPI } from '../plugin/feature'
 import databaseAPI from '../shared/database'
 
@@ -533,14 +534,16 @@ export class PluginsAPI {
 
       console.log('从 OSS 获取插件市场列表...')
 
+      // 生成时间戳，用于禁用缓存
+      const timestamp = Date.now()
+
       // 获取最新版本号（格式：2026.01.17.1337）
       let latestVersion = ''
       try {
-        const versionResponse = await fetch(latestVersionUrl)
-        if (versionResponse.ok) {
-          latestVersion = (await versionResponse.text()).trim()
-          console.log(`发现最新插件列表版本: ${latestVersion}`)
-        }
+        // 添加时间戳参数，确保每次都获取最新版本（httpGet 已默认禁用缓存）
+        const versionResponse = await httpGet(`${latestVersionUrl}?t=${timestamp}`)
+        latestVersion = versionResponse.data.trim()
+        console.log(`发现最新插件列表版本: ${latestVersion}`)
       } catch (error) {
         console.warn('获取版本号失败，将强制更新:', error)
       }
@@ -554,14 +557,10 @@ export class PluginsAPI {
         return { success: true, data: cachedData }
       }
 
-      // 下载 plugins.json
+      // 下载 plugins.json（添加时间戳，httpGet 已默认禁用缓存）
       console.log('下载新版本插件列表...')
-      const response = await fetch(pluginsJsonUrl)
-      if (!response.ok) {
-        throw new Error(`下载失败: ${response.status} ${response.statusText}`)
-      }
-
-      const json = await response.json()
+      const response = await httpGet(`${pluginsJsonUrl}?t=${timestamp}`)
+      const json = typeof response.data === 'string' ? JSON.parse(response.data) : response.data
 
       // 保存到缓存
       await databaseAPI.dbPut('plugin-market-version', latestVersion)

@@ -11,6 +11,7 @@ import { GLOBAL_SCROLLBAR_CSS } from '../core/globalStyles'
 import { isInternalPlugin } from '../core/internalPlugins'
 import pluginWindowManager from '../core/pluginWindowManager'
 import { registerIconProtocolForSession } from '../index'
+import proxyManager from './proxyManager'
 
 console.log('mainPreload', mainPreload)
 
@@ -150,6 +151,9 @@ class PluginManager {
         type: 'frame',
         filePath: mainPreload
       })
+
+      // 应用代理配置到插件 session
+      await proxyManager.applyProxyToSession(sess, `插件 ${pluginConfig.name}`)
 
       // 如果是内置插件，注册图标协议（外部插件不需要访问应用图标）
       if (isInternalPlugin(pluginConfig.name)) {
@@ -866,6 +870,9 @@ class PluginManager {
         type: 'frame',
         filePath: mainPreload
       })
+
+      // 应用代理配置到插件 session
+      await proxyManager.applyProxyToSession(sess, `插件 ${pluginConfig.name}`)
 
       // 如果是内置插件，注册图标协议（外部插件不需要访问应用图标）
       if (isInternalPlugin(pluginConfig.name)) {

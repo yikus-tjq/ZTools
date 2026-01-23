@@ -1,9 +1,17 @@
-import { net } from 'electron'
+import { net, session } from 'electron'
 import { promises as fs } from 'fs'
 
 export async function downloadFile(url: string, filePath: string): Promise<void> {
   return new Promise<void>((resolve, reject) => {
-    const request = net.request(url)
+    const request = net.request({
+      url,
+      session: session.defaultSession // 显式指定使用 defaultSession（确保代理配置生效）
+    })
+
+    // 禁用缓存的请求头（确保每次都下载最新文件）
+    request.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+    request.setHeader('Pragma', 'no-cache')
+    request.setHeader('Expires', '0')
 
     request.setHeader(
       'accept',

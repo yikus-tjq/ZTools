@@ -413,6 +413,8 @@ window.ztools = {
     setLaunchAtLogin: async (enabled) =>
       await electron.ipcRenderer.invoke('internal:set-launch-at-login', enabled),
     getLaunchAtLogin: async () => await electron.ipcRenderer.invoke('internal:get-launch-at-login'),
+    setProxyConfig: async (config) =>
+      await electron.ipcRenderer.invoke('internal:set-proxy-config', config),
     getAppVersion: async () => await electron.ipcRenderer.invoke('get-app-version'),
     getSystemVersions: async () => await electron.ipcRenderer.invoke('get-system-versions'),
     getPlatform: () => electron.ipcRenderer.sendSync('internal:get-platform'),
