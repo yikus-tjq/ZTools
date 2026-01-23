@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { httpGet, httpPost, httpHead } from './httpRequest'
 
 let globalAcwCookie = ''
 
@@ -49,7 +49,7 @@ export async function getLanzouDownloadLink(url: string): Promise<string> {
           formData.append(key, obj.data[key])
         }
 
-        const response = await axios.post(requestUrl, formData, {
+        const response = await httpPost(requestUrl, formData, {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
             Referer: iframeUrl,
@@ -97,8 +97,8 @@ export async function getLanzouDownloadLink(url: string): Promise<string> {
     console.log('downloadLink', downloadLink)
 
     // 解析重定向
-    // Axios 默认跟随重定向。我们使用 HEAD 请求来获取最终 URL，而不下载内容。
-    const finalResponse = await axios.head(downloadLink, {
+    // 使用 HEAD 请求来获取最终 URL，而不下载内容
+    const finalResponse = await httpHead(downloadLink, {
       maxRedirects: 1, // 一次重定向
       validateStatus: () => true, // 不验证状态码
       headers: {
@@ -108,8 +108,8 @@ export async function getLanzouDownloadLink(url: string): Promise<string> {
       }
     })
 
-    // 在 axios node 环境中，最终 url 可以在 `finalResponse.request.res.responseUrl` 中找到
-    return finalResponse.request.res.responseUrl || downloadLink
+    // 返回最终 URL
+    return finalResponse.request?.res?.responseUrl || downloadLink
   } catch (error) {
     console.error('解析蓝奏云链接出错:', error)
     throw error
@@ -189,7 +189,7 @@ export async function getLanzouFolderFileList(url: string, password?: string): P
       formData.append(key, ajaxData[key])
     }
 
-    const response = await axios.post(requestUrl, formData, {
+    const response = await httpPost(requestUrl, formData, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         Referer: url,
@@ -247,7 +247,7 @@ async function fetchContent(url: string): Promise<string> {
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0'
   }
 
-  const response = await axios.get(url, { headers })
+  const response = await httpGet(url, { headers })
   // console.log('fetchContent response:', response)
 
   // 检查反爬虫保护
@@ -263,14 +263,13 @@ async function fetchContent(url: string): Promise<string> {
         globalAcwCookie = cookieResult.cookieHeader
 
         // 合并 Cookies
-        // 如果有 Set-Cookie，从响应中提取（虽然如果使用 jar，axios 可能会自动处理，但这里我们手动处理）
-        // 实际上，对于这种情况，我们只需要追加计算出的 Cookie
+        // 实际上,对于这种情况,我们只需要追加计算出的 Cookie
         const currentCookie = headers['Cookie'] || ''
         headers['Cookie'] = `${currentCookie}; ${cookieResult.cookieHeader}`
         console.log('合并后的 Cookies:', headers['Cookie'])
 
         // 重试请求
-        const retryResponse = await axios.get(url, { headers })
+        const retryResponse = await httpGet(url, { headers })
         return retryResponse.data
       } else {
         console.error('Cookie 解密失败:', cookieResult.error)

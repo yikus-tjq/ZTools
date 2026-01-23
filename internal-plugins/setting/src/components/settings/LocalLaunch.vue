@@ -54,7 +54,9 @@
           stroke-linecap="round"
           stroke-linejoin="round"
         >
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          <path
+            d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+          ></path>
         </svg>
         <div class="empty-text">暂无本地启动项</div>
         <div class="empty-hint">拖拽文件、文件夹或应用到此处，或点击上方按钮添加</div>
@@ -87,7 +89,10 @@
               stroke-linecap="round"
               stroke-linejoin="round"
             >
-              <path v-if="shortcut.type === 'folder'" d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              <path
+                v-if="shortcut.type === 'folder'"
+                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+              ></path>
               <path v-else-if="shortcut.type === 'app'" d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
               <path v-else d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
               <polyline v-if="shortcut.type === 'file'" points="13 2 13 9 20 9"></polyline>
@@ -347,7 +352,8 @@ onMounted(() => {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.9;
   }
   50% {
@@ -368,7 +374,8 @@ onMounted(() => {
 }
 
 @keyframes bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
