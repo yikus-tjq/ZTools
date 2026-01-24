@@ -6,6 +6,7 @@ import { pathToFileURL } from 'url'
 import { normalizeIconPath } from '../../common/iconUtils'
 import { isInternalPlugin } from '../../core/internalPlugins'
 import lmdbInstance from '../../core/lmdb/lmdbInstance'
+import windowManager from '../../managers/windowManager'
 import { sleep } from '../../utils/common.js'
 import { downloadFile } from '../../utils/download.js'
 import { httpGet } from '../../utils/httpRequest.js'
@@ -505,13 +506,15 @@ export class PluginsAPI {
   }
 
   // 终止插件并返回搜索页面
-  private killPluginAndReturn(pluginPath: string): { success: boolean; error?: string } {
+  private killPluginAndReturn(
+    pluginPath: string
+  ): { success: boolean; error?: string } {
     try {
       console.log('终止插件并返回搜索页面:', pluginPath)
       if (this.pluginManager) {
         const result = this.pluginManager.killPlugin(pluginPath)
         if (result) {
-          this.mainWindow?.webContents.send('back-to-search')
+          windowManager.notifyBackToSearch()
           this.mainWindow?.webContents.focus()
           return { success: true }
         } else {

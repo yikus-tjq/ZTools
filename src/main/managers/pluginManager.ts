@@ -252,7 +252,7 @@ class PluginManager {
         // 如果是当前显示的插件，隐藏并返回搜索页面
         if (this.currentPluginPath === pluginPath) {
           this.hidePluginView()
-          this.mainWindow?.webContents.send('back-to-search')
+          this.windowManager?.notifyBackToSearch()
           this.currentPluginPath = null
           console.log('插件崩溃，已返回搜索页面')
         }
@@ -529,8 +529,7 @@ class PluginManager {
     const success = this.killPlugin(pluginPath)
 
     if (success && this.mainWindow) {
-      // 通知主窗口返回搜索页面
-      this.mainWindow.webContents.send('back-to-search')
+      this.windowManager?.notifyBackToSearch()
       // 主窗口获取焦点
       this.mainWindow.webContents.focus()
       console.log('已终止插件并返回搜索页面')
@@ -781,8 +780,7 @@ class PluginManager {
     this.lastPluginEscTime = Date.now()
     console.log('插件按下 ESC 键 (Main Process)，返回搜索页面')
     this.hidePluginView()
-    // 通知渲染进程返回搜索页面
-    this.mainWindow?.webContents.send('back-to-search')
+    this.windowManager?.notifyBackToSearch()
     // 主窗口获取焦点
     this.mainWindow?.webContents.focus()
   }
@@ -1076,7 +1074,7 @@ class PluginManager {
 
       // 通知渲染进程插件已关闭
       this.mainWindow.webContents.send('plugin-closed')
-      this.mainWindow.webContents.send('back-to-search')
+      this.windowManager?.notifyBackToSearch()
 
       // 清空当前引用
       this.pluginView = null

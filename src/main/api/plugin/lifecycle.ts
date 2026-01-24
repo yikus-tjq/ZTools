@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import windowManager from '../../managers/windowManager'
 
 /**
  * 插件生命周期API - 插件专用
@@ -38,7 +39,7 @@ export class PluginLifecycleAPI {
       event.sender.send('plugin-out', false)
 
       this.pluginManager.hidePluginView()
-      this.mainWindow?.webContents.send('back-to-search')
+      windowManager.notifyBackToSearch()
       // 主窗口获取焦点（确保前端的 focus() 调用能生效）
       this.mainWindow?.webContents.focus()
 

@@ -1,4 +1,5 @@
 import { ipcMain, Notification } from 'electron'
+import windowManager from '../../managers/windowManager'
 import databaseAPI from '../shared/database'
 import { pluginFeatureAPI } from './feature'
 
@@ -202,7 +203,7 @@ export class PluginRedirectAPI {
       console.log('检测到插件正在显示，先隐藏插件并返回搜索页')
       this.pluginManager.hidePluginView()
       // 通知渲染进程返回搜索页面
-      this.mainWindow?.webContents.send('back-to-search')
+      windowManager.notifyBackToSearch()
     }
 
     // 然后再发送跳转搜索的事件

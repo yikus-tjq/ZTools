@@ -67,6 +67,15 @@ class WindowManager {
   }
 
   /**
+   * 通知渲染进程返回搜索页面
+   * 同时切换窗口调整大小模式为搜索模式（只允许调整宽度）
+   */
+  public notifyBackToSearch(): void {
+    this.setSearchMode()
+    this.mainWindow?.webContents.send('back-to-search')
+  }
+
+  /**
    * 获取鼠标所在显示器的工作区尺寸和位置
    */
   private getDisplayAtCursor(): {
@@ -654,8 +663,8 @@ class WindowManager {
     if (!this.mainWindow) return
 
     pluginManager.hidePluginView()
-    // 通知渲染进程返回搜索
-    this.mainWindow.webContents.send('back-to-search')
+    // 通知渲染进程返回搜索并切换模式
+    this.notifyBackToSearch()
     console.log('已触发自动返回搜索')
   }
 
@@ -913,7 +922,7 @@ class WindowManager {
       console.log('检测到插件正在显示，先隐藏插件')
       pluginManager.hidePluginView()
       // 通知渲染进程返回搜索页面
-      this.mainWindow.webContents.send('back-to-search')
+      this.notifyBackToSearch()
     }
 
     // 记录打开窗口前的激活窗口

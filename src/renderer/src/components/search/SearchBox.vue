@@ -1,5 +1,10 @@
 <template>
-  <div ref="searchBoxRef" class="search-box" @mousedown="handleMouseDown">
+  <div
+    ref="searchBoxRef"
+    class="search-box"
+    @mousedown="handleMouseDown"
+    @dblclick="handleDoubleClick"
+  >
     <!-- 拖放蒙版 -->
     <div v-if="isDraggingOver" class="drag-overlay"></div>
     <!-- 隐藏的测量元素,用于计算文本宽度 -->
@@ -779,6 +784,22 @@ onMounted(() => {
     }
   })
 })
+
+// 处理双击事件 - 在插件显示状态下分离插件
+async function handleDoubleClick(): Promise<void> {
+  // 只在插件模式下响应双击事件
+  if (props.currentView === 'plugin' && windowStore.currentPlugin) {
+    console.log('双击搜索框，触发插件分离')
+    try {
+      const result = await window.ztools.detachPlugin()
+      if (!result.success) {
+        console.error('分离插件失败:', result.error)
+      }
+    } catch (error: any) {
+      console.error('分离插件失败:', error)
+    }
+  }
+}
 
 async function handleSettingsClick(): Promise<void> {
   console.log('点击设置按钮:', {
