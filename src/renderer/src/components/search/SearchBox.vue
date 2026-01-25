@@ -313,6 +313,20 @@ function onKeydown(event: KeyboardEvent): void {
     return
   }
 
+  // 检测 Command+F (Mac) 或 Ctrl+F (Windows/Linux) 快捷键
+  if (event.key === 'f' && (event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey) {
+    // 如果输入框有文本内容，将其转为二次筛选状态
+    const inputText = props.modelValue?.trim()
+    if (inputText && inputText.length > 0) {
+      event.preventDefault()
+      // 将当前输入框的文本转为粘贴文本（触发二次筛选）
+      emit('update:pastedText', inputText)
+      // 清空输入框
+      emit('update:modelValue', '')
+      return
+    }
+  }
+
   // 如果有粘贴的图片、文件或文本，按 Backspace 或 Delete 键清除
   if (
     (props.pastedImage || props.pastedFiles || props.pastedText) &&
