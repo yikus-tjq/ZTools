@@ -203,6 +203,14 @@ class PluginManager {
       // 设置透明背景，支持 fullscreen-ui 效果
       this.pluginView.setBackgroundColor('#00000000')
 
+      // 监听插件视图的焦点事件,实时跟踪焦点状态
+      this.pluginView.webContents.on('focus', () => {
+        console.log('插件视图 webContents 获得焦点')
+        if (this.windowManager) {
+          this.windowManager.updateFocusTarget('plugin')
+        }
+      })
+
       // 监听 Cmd+D / Ctrl+D 和 Cmd+Q / Ctrl+Q 快捷键（ESC 改为在插件 preload 中通过 JS 拦截后再通过 IPC 通知）
       this.pluginView.webContents.on('before-input-event', (event, input) => {
         // Cmd+D / Ctrl+D: 分离插件到独立窗口

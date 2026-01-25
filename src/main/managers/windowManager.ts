@@ -49,6 +49,7 @@ class WindowManager {
   private lastFocusTarget: 'mainWindow' | 'plugin' | null = null // 窗口隐藏前的焦点状态
   private isPluginMode: boolean = false // 是否处于插件模式
   private saveWindowWidthTimer: NodeJS.Timeout | null = null // 保存窗口宽度的防抖定时器
+  private isRestoringFocus: boolean = false // 是否正在恢复焦点状态（防止 focus 事件监听器干扰）
 
   /**
    * 切换到搜索模式（只允许调整宽度）
@@ -56,6 +57,14 @@ class WindowManager {
   public setSearchMode(): void {
     this.isPluginMode = false
     console.log('已切换到搜索模式：只允许调整宽度')
+  }
+
+  /**
+   * 更新焦点目标（供外部调用,如 pluginManager）
+   */
+  public updateFocusTarget(target: 'mainWindow' | 'plugin'): void {
+    this.lastFocusTarget = target
+    console.log('焦点目标已更新:', target)
   }
 
   /**
@@ -268,14 +277,28 @@ class WindowManager {
       console.log('页面加载成功!')
     })
 
+    // 监听主窗口 webContents 的焦点事件
+    this.mainWindow.webContents.on('focus', () => {
+      // 只在非恢复焦点状态时才更新 lastFocusTarget，避免显示窗口流程中被意外覆盖
+      if (!this.isRestoringFocus) {
+        this.lastFocusTarget = 'mainWindow'
+        console.log('主窗口 webContents 获得焦点')
+      }
+    })
+
     this.mainWindow.on('blur', () => {
       this.hideWindow(false)
     })
 
     this.mainWindow.on('show', () => {
+      // 开始恢复焦点流程，防止 focus 事件监听器修改 lastFocusTarget
+      this.isRestoringFocus = true
+      const savedFocusTarget = this.lastFocusTarget
+      console.log('主窗口显示，上次聚焦状态:', savedFocusTarget)
+
       // 恢复上次的焦点状态
       // 如果明确记录了上次聚焦在主窗口，则强制聚焦主窗口
-      if (this.lastFocusTarget === 'mainWindow') {
+      if (savedFocusTarget === 'mainWindow') {
         this.mainWindow?.webContents.focus()
         // 通知渲染进程聚焦搜索框
         this.mainWindow?.webContents.send('focus-search')
@@ -288,6 +311,9 @@ class WindowManager {
         // 通知渲染进程聚焦搜索框
         this.mainWindow?.webContents.send('focus-search')
       }
+
+      // 恢复完成，清除标志位
+      this.isRestoringFocus = false
     })
 
     // 监听窗口大小变化
@@ -448,20 +474,14 @@ class WindowManager {
 
   /**
    * 记录当前的焦点状态（在隐藏之前调用）
+   * 注意：焦点状态现在通过事件监听实时跟踪,此方法仅用于确保状态正确
    */
   private recordFocusState(): void {
-    if (pluginManager.getCurrentPluginPath() !== null) {
-      // 检查插件视图是否有焦点
-      const pluginView = pluginManager.getCurrentPluginView()
-      if (pluginView && pluginView.webContents && pluginView.webContents.isFocused()) {
-        this.lastFocusTarget = 'plugin'
-      } else {
-        this.lastFocusTarget = 'mainWindow'
-      }
-    } else {
+    // 如果没有插件在运行,焦点一定在主窗口
+    if (pluginManager.getCurrentPluginPath() === null) {
       this.lastFocusTarget = 'mainWindow'
     }
-
+    // 如果有插件在运行,保持当前的 lastFocusTarget 值（由事件监听器维护）
     console.log('记录焦点状态:', this.lastFocusTarget)
   }
 
@@ -490,6 +510,10 @@ class WindowManager {
     } else {
       // 窗口已隐藏或失焦 → 显示并强制激活
       console.log('显示窗口')
+
+      // 开始恢复焦点流程，防止 focus 事件监听器修改 lastFocusTarget
+      this.isRestoringFocus = true
+
       // 记录打开窗口前的激活窗口
       const currentWindow = clipboardManager.getCurrentWindow()
       if (currentWindow) {
@@ -575,6 +599,9 @@ class WindowManager {
   public showWindow(): void {
     if (!this.mainWindow) return
 
+    // 开始恢复焦点流程，防止 focus 事件监听器修改 lastFocusTarget
+    this.isRestoringFocus = true
+
     // 取消自动返回搜索定时器
     this.cancelAutoBackToSearchTimer()
 
@@ -591,7 +618,7 @@ class WindowManager {
     // 移动到鼠标所在显示器（恢复该显示器记忆的位置或居中）
     this.moveWindowToCursor()
 
-    // 使用强制激活逻辑
+    // 使用强制激活逻辑（注意：show 事件会清除 isRestoringFocus 标志）
     this.forceActivateWindow()
   }
 
