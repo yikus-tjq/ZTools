@@ -332,8 +332,8 @@ function onKeydown(event: KeyboardEvent): void {
     (props.pastedImage || props.pastedFiles || props.pastedText) &&
     (event.key === 'Backspace' || event.key === 'Delete')
   ) {
-    // 如果输入框为空，清除图片、文件或文本
-    if (!props.modelValue) {
+    // 如果输入框为空且不在输入法组合中，清除图片、文件或文本
+    if (!props.modelValue && !isComposing.value) {
       event.preventDefault()
       if (props.pastedImage) {
         clearPastedImage()
