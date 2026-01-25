@@ -286,7 +286,7 @@ export class UpdaterAPI {
 
     // 退出应用
     console.log('应用即将退出进行更新...')
-    app.quit()
+    app.exit(0)
   }
 
   /**
