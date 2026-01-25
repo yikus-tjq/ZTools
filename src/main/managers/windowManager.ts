@@ -464,8 +464,35 @@ class WindowManager {
     } else {
       this.currentShortcut = keyToRegister
       console.log(`快捷键 ${keyToRegister} 注册成功`)
-      return true
     }
+
+    // 注册开发者工具快捷键 (Option+Command+I / Ctrl+Shift+I)
+    const devToolsShortcut = platform.isMacOS ? 'Option+Command+I' : 'Ctrl+Shift+I'
+    const devToolsRet = globalShortcut.register(devToolsShortcut, () => {
+      console.log('开发者工具快捷键触发')
+      // 检查是否有插件正在运行
+      if (pluginManager.getCurrentPluginPath()) {
+        // 打开插件开发者工具
+        console.log('打开插件开发者工具')
+        pluginManager.openPluginDevTools()
+      } else {
+        // 打开主窗口开发者工具
+        console.log('打开主窗口开发者工具')
+        if (this.mainWindow?.webContents.isDevToolsOpened()) {
+          this.mainWindow.webContents.closeDevTools()
+        } else {
+          this.mainWindow?.webContents.openDevTools({ mode: 'detach' })
+        }
+      }
+    })
+
+    if (!devToolsRet) {
+      console.error(`开发者工具快捷键注册失败: ${devToolsShortcut}`)
+    } else {
+      console.log(`开发者工具快捷键 ${devToolsShortcut} 注册成功`)
+    }
+
+    return ret
   }
 
   public refreshPreviousActiveWindow(): void {

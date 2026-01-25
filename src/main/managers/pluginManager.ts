@@ -203,6 +203,12 @@ class PluginManager {
       // 设置透明背景，支持 fullscreen-ui 效果
       this.pluginView.setBackgroundColor('#00000000')
 
+      // 禁用插件视图的默认开发者工具快捷键
+      // 这样我们可以自定义处理开发者工具的打开逻辑
+      this.pluginView.webContents.on('devtools-opened', () => {
+        console.log('插件开发者工具已打开')
+      })
+
       // 监听插件视图的焦点事件,实时跟踪焦点状态
       this.pluginView.webContents.on('focus', () => {
         console.log('插件视图 webContents 获得焦点')
