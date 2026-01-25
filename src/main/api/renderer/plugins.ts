@@ -458,6 +458,7 @@ export class PluginsAPI {
 
       plugins[pluginIndex] = {
         ...oldPlugin,
+        title: pluginConfig.title || oldPlugin.title,
         name: pluginConfig.name || oldPlugin.name,
         version: pluginConfig.version || oldPlugin.version,
         description: pluginConfig.description || oldPlugin.description,
