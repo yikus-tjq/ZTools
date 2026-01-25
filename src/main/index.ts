@@ -260,6 +260,9 @@ app.on('before-quit', (event) => {
     console.log('阻止了 Command+Q 退出，请使用托盘菜单退出')
     // 隐藏窗口
     windowManager.hideWindow(false)
+  } else {
+    // 主动退出时，关闭所有插件
+    pluginManager.killAllPlugins()
   }
 })
 

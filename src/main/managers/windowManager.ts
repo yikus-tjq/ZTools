@@ -398,21 +398,15 @@ class WindowManager {
         label: '重启',
         click: () => {
           this.isQuitting = true
-          // 添加短暂延迟确保标志在 before-quit 事件前设置
-          setTimeout(() => {
-            app.relaunch()
-            app.quit()
-          }, 50)
+          app.relaunch()
+          app.quit()
         }
       },
       {
         label: '退出',
         click: () => {
           this.isQuitting = true
-          // 添加短暂延迟确保标志在 before-quit 事件前设置
-          setTimeout(() => {
-            app.quit()
-          }, 50)
+          app.quit()
         }
       }
     ])

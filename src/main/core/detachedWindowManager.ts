@@ -438,8 +438,9 @@ class DetachedWindowManager {
     for (const windowId of windowIdsToClose) {
       const windowInfo = this.detachedWindowMap.get(windowId)
       if (windowInfo && !windowInfo.window.isDestroyed()) {
-        windowInfo.window.close()
+        windowInfo.window.destroy()
       }
+      this.detachedWindowMap.delete(windowId)
     }
 
     console.log(`已关闭插件 ${pluginPath} 的 ${windowIdsToClose.length} 个分离窗口`)

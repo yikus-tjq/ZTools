@@ -45,7 +45,7 @@ class PluginWindowManager {
       preloadPath = path.join(pluginPath, preloadPath)
     }
 
-    console.log('子窗口 preloadPath', preloadPath)
+    console.log('子窗口 preloadPath', preloadPath, pluginPath)
 
     // 使用插件名称创建 session,确保和插件主视图共享同一个 session
     const sess = session.fromPartition('persist:' + pluginName)
@@ -321,8 +321,9 @@ class PluginWindowManager {
     for (const windowId of windowIdsToClose) {
       const windowInfo = this.windowInfoMap.get(windowId)
       if (windowInfo && !windowInfo.window.isDestroyed()) {
-        windowInfo.window.close()
+        windowInfo.window.destroy()
       }
+      this.windowInfoMap.delete(windowId)
     }
 
     console.log(`已关闭插件 ${pluginPath} 的 ${windowIdsToClose.length} 个窗口`)
