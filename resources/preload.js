@@ -253,6 +253,8 @@ window.ztools = {
 
           if (info.type === 'value') {
             return info.value
+          } else if (info.type === 'undefined') {
+            throw new Error('window no exist')
           } else {
             // 如果是对象，继续 Proxy
             return createProxy(newPath)
