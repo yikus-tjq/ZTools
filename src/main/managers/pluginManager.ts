@@ -13,6 +13,7 @@ import { isInternalPlugin } from '../core/internalPlugins'
 import pluginWindowManager from '../core/pluginWindowManager'
 import { registerIconProtocolForSession } from '../index'
 import proxyManager from './proxyManager'
+import devToolsShortcut from '../utils/devToolsShortcut'
 
 console.log('mainPreload', mainPreload)
 
@@ -215,6 +216,15 @@ class PluginManager {
         if (this.windowManager) {
           this.windowManager.updateFocusTarget('plugin')
         }
+        // 注册开发者工具快捷键
+        if (this.pluginView && !this.pluginView.webContents.isDestroyed()) {
+          devToolsShortcut.register(this.pluginView.webContents)
+        }
+      })
+
+      this.pluginView.webContents.on('blur', () => {
+        // 注销开发者工具快捷键
+        devToolsShortcut.unregister()
       })
 
       // 监听 Cmd+D / Ctrl+D 和 Cmd+Q / Ctrl+Q 快捷键（ESC 改为在插件 preload 中通过 JS 拦截后再通过 IPC 通知）

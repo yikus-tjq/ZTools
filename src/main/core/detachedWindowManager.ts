@@ -6,6 +6,7 @@ import databaseAPI from '../api/shared/database'
 import { applyWindowMaterial } from '../utils/windowUtils'
 import { GLOBAL_SCROLLBAR_CSS } from './globalStyles.js'
 import lmdbInstance from './lmdb/lmdbInstance'
+import devToolsShortcut from '../utils/devToolsShortcut'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -280,6 +281,17 @@ class DetachedWindowManager {
 
       // 让插件视图获取焦点
       pluginView.webContents.focus()
+
+      // 注册开发者工具快捷键
+      pluginView.webContents.on('focus', () => {
+        if (!pluginView.webContents.isDestroyed()) {
+          devToolsShortcut.register(pluginView.webContents)
+        }
+      })
+
+      pluginView.webContents.on('blur', () => {
+        devToolsShortcut.unregister()
+      })
 
       // 更新 Dock 图标显示状态
       this.updateDockVisibility()
