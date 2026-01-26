@@ -16,6 +16,18 @@ import windowManager from './managers/windowManager'
 
 const execAsync = promisify(exec)
 
+// 单例锁
+const gotTheLock = app.requestSingleInstanceLock()
+
+if (!gotTheLock) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    // 当运行第二个实例时，焦点聚焦到这个实例
+    windowManager.showWindow()
+  })
+}
+
 // ========== 关键修复：注册自定义协议为特权协议 ==========
 // 必须在 app.ready 之前调用，否则渲染进程会因为安全策略拒绝加载
 protocol.registerSchemesAsPrivileged([
