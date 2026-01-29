@@ -220,9 +220,9 @@ const bestSearchResults = computed(() => {
   }
 
   // 如果有最佳匹配（regex/img/files 类型），则不显示模糊搜索结果
-  if (bestMatches.value.length > 0) {
-    return []
-  }
+  // if (bestMatches.value.length > 0) {
+  //   return []
+  // }
 
   // 返回模糊搜索结果
   const result = search(props.searchQuery)
