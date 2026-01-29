@@ -5,7 +5,6 @@ import log from 'electron-log'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { promisify } from 'util'
-import { Worker } from 'worker_threads'
 import api from './api/index'
 import appWatcher from './appWatcher'
 import detachedWindowManager from './core/detachedWindowManager'
@@ -16,6 +15,8 @@ import windowManager from './managers/windowManager'
 
 const execAsync = promisify(exec)
 
+// Windows 图标提取模块（延迟加载）
+let extractFileIcon: ((path: string, size?: 16 | 32 | 64 | 256) => Buffer) | null = null
 // 单例锁
 const gotTheLock = app.requestSingleInstanceLock()
 
@@ -46,50 +47,6 @@ protocol.registerSchemesAsPrivileged([
 
 // 定义全局图标内存缓存
 const iconMemoryCache = new Map<string, Buffer>()
-
-// 图标提取 Worker 管理
-let iconWorker: Worker | null = null
-const workerPendingTasks = new Map<
-  string,
-  { resolve: (buffer: Buffer) => void; reject: (err: any) => void }
->()
-
-function initIconWorker(): void {
-  // 确定 Worker 脚本路径
-  // 在生产环境中，它位于 app.asar/out/main/iconWorker.js (或 app.asar.unpacked 如果配置了解压)
-  // 在开发环境中，它位于 out/main/iconWorker.js
-  const workerScript = path.join(__dirname, 'iconWorker.js')
-
-  try {
-    iconWorker = new Worker(workerScript)
-
-    iconWorker.on('message', ({ id, buffer, error }) => {
-      const task = workerPendingTasks.get(id)
-      if (task) {
-        if (error) {
-          task.reject(new Error(error))
-        } else {
-          // 将 Node.js Buffer 转换为 Uint8Array
-          task.resolve(Buffer.from(buffer))
-        }
-        workerPendingTasks.delete(id)
-      }
-    })
-
-    iconWorker.on('error', (err) => {
-      console.error('Icon Worker Error:', err)
-    })
-
-    iconWorker.on('exit', (code) => {
-      if (code !== 0) {
-        console.error(`Icon Worker stopped with exit code ${code}`)
-        // 可以考虑自动重启 Worker
-      }
-    })
-  } catch (error) {
-    console.error('Failed to initialize Icon Worker:', error)
-  }
-}
 
 // 配置 electron-log
 log.transports.file.level = 'debug'
@@ -182,24 +139,22 @@ export function registerIconProtocolForSession(targetSession: Electron.Session):
           }
         }
       } else {
-        // Windows: 使用 Worker + extract-file-icon
-        if (!iconWorker) {
-          initIconWorker()
+        // Windows: 动态导入 extract-file-icon 并实时提取
+        if (!extractFileIcon) {
+          try {
+            const module = await import('extract-file-icon')
+            extractFileIcon = module.default
+          } catch (error) {
+            console.error('加载 extract-file-icon 失败:', error)
+            throw new Error('extract-file-icon module not available')
+          }
         }
 
-        buffer = await new Promise<Buffer>((resolve, reject) => {
-          const taskId = `${Date.now()}-${Math.random()}`
-          workerPendingTasks.set(taskId, { resolve, reject })
-          iconWorker?.postMessage({ id: taskId, exePath: iconPath })
-
-          // 超时处理（10秒）
-          setTimeout(() => {
-            if (workerPendingTasks.has(taskId)) {
-              workerPendingTasks.delete(taskId)
-              reject(new Error('Icon extraction timeout'))
-            }
-          }, 10000)
-        })
+        // 实时提取图标（同步操作，但速度很快）
+        if (!extractFileIcon) {
+          throw new Error('extract-file-icon not initialized')
+        }
+        buffer = extractFileIcon(iconPath, 32)
       }
 
       // 写入内存缓存

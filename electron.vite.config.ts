@@ -8,8 +8,7 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, 'src/main/index.ts'),
-          iconWorker: resolve(__dirname, 'src/main/workers/iconWorker.ts')
+          index: resolve(__dirname, 'src/main/index.ts')
         }
       }
     }
