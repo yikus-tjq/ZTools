@@ -177,6 +177,19 @@ const scrollContainerRef = ref<HTMLElement>()
 // 是否显示最近使用
 const showRecentInSearch = computed(() => windowStore.showRecentInSearch)
 
+// 统一的搜索结果（只执行一次搜索）
+const unifiedSearchResult = computed(() => {
+  // 没有搜索关键词时返回空结果
+  if (!props.searchQuery.trim()) {
+    return { bestMatches: [], regexMatches: [] }
+  }
+
+  console.log('执行搜索')
+
+  // 执行一次搜索
+  return search(props.searchQuery)
+})
+
 // 最佳搜索结果（模糊搜索：应用、插件、系统设置）
 const bestSearchResults = computed(() => {
   // 粘贴图片或文件时不显示最佳搜索结果（显示在最佳匹配中）
@@ -219,14 +232,8 @@ const bestSearchResults = computed(() => {
     return []
   }
 
-  // 如果有最佳匹配（regex/img/files 类型），则不显示模糊搜索结果
-  // if (bestMatches.value.length > 0) {
-  //   return []
-  // }
-
-  // 返回模糊搜索结果
-  const result = search(props.searchQuery)
-  return result.bestMatches
+  // 返回模糊搜索结果（从统一搜索结果中获取）
+  return unifiedSearchResult.value.bestMatches
 })
 
 // 最佳匹配（匹配指令：regex/img/files 类型）
@@ -285,11 +292,8 @@ const bestMatches = computed(() => {
     return []
   }
 
-  // 普通搜索：返回匹配指令（regex/img/files 类型）
-  const result = search(props.searchQuery)
-
-  // 从 regexMatches 中过滤出 regex、img、files 类型（排除 over）
-  return result.regexMatches.filter((cmd) => {
+  // 普通搜索：从统一搜索结果中获取 regexMatches，并过滤出 regex、img、files 类型（排除 over）
+  return unifiedSearchResult.value.regexMatches.filter((cmd) => {
     const cmdType = cmd.cmdType || cmd.matchCmd?.type
     return cmdType === 'regex' || cmdType === 'img' || cmdType === 'files'
   })
@@ -353,11 +357,8 @@ const recommendations = computed(() => {
       return []
     }
 
-    const searchResult = search(props.searchQuery)
-    const regexResults = searchResult.regexMatches
-
-    // 只保留 over 类型的匹配指令
-    overTypeResults = regexResults.filter((cmd) => {
+    // 从统一搜索结果中获取 regexMatches，只保留 over 类型的匹配指令
+    overTypeResults = unifiedSearchResult.value.regexMatches.filter((cmd) => {
       const cmdType = cmd.cmdType || cmd.matchCmd?.type
       return cmdType === 'over'
     })
