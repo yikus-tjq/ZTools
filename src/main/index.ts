@@ -17,6 +17,12 @@ const execAsync = promisify(exec)
 
 // Windows 图标提取模块（延迟加载）
 let extractFileIcon: ((path: string, size?: 16 | 32 | 64 | 256) => Buffer) | null = null
+
+// Windows 平台需要设置 AppUserModelId 才能让单例锁正常工作
+if (process.platform === 'win32') {
+  app.setAppUserModelId('link.eiot.ztools')
+}
+
 // 单例锁
 const gotTheLock = app.requestSingleInstanceLock()
 
