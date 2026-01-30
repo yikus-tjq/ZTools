@@ -86,11 +86,12 @@ export class PluginDeviceAPI {
         )
         return output.trim()
       } else if (platform === 'win32') {
-        // Windows: 使用主板 UUID
-        const output = execSync('wmic csproduct get UUID', { encoding: 'utf8' })
-        // 输出格式：UUID\nxxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-        const lines = output.split('\n').map((line) => line.trim())
-        const uuid = lines.find((line) => line && line !== 'UUID')
+        // Windows: 使用 PowerShell 获取主板 UUID（wmic 已弃用）
+        const output = execSync(
+          'powershell -Command "(Get-CimInstance Win32_ComputerSystemProduct).UUID"',
+          { encoding: 'utf8' }
+        )
+        const uuid = output.trim()
         if (uuid) {
           return uuid
         }
