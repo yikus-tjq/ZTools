@@ -195,7 +195,7 @@ app.whenReady().then(async () => {
   // 初始化 API 和插件管理器
   if (mainWindow) {
     api.init(mainWindow, pluginManager)
-    pluginManager.init(mainWindow, windowManager)
+    pluginManager.init(mainWindow)
     // 初始化应用目录监听器
     appWatcher.init(mainWindow)
   }

@@ -1243,14 +1243,9 @@ async function saveSettings(): Promise<void> {
     // 只有自定义头像才保存到数据库，默认头像不保存
     const avatarToSave = avatar.value === defaultAvatar ? undefined : avatar.value
 
-    // 重新读取配置获取windowWidth
-    const data = await window.ztools.internal.dbGet('settings-general')
-    const windowWidth = data?.windowWidth ?? 800
-
     await window.ztools.internal.dbPut('settings-general', {
       opacity: opacity.value,
       windowDefaultHeight: windowDefaultHeight.value,
-      windowWidth: windowWidth,
       hotkey: hotkey.value,
       placeholder: placeholder.value,
       avatar: avatarToSave,

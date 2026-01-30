@@ -47,17 +47,7 @@ class WindowManager {
   private autoBackToSearchTimer: NodeJS.Timeout | null = null // 自动返回搜索定时器
   private autoBackToSearchConfig: string = 'never' // 自动返回搜索配置
   private lastFocusTarget: 'mainWindow' | 'plugin' | null = null // 窗口隐藏前的焦点状态
-  private isPluginMode: boolean = false // 是否处于插件模式
-  private saveWindowWidthTimer: NodeJS.Timeout | null = null // 保存窗口宽度的防抖定时器
   private isRestoringFocus: boolean = false // 是否正在恢复焦点状态（防止 focus 事件监听器干扰）
-
-  /**
-   * 切换到搜索模式（只允许调整宽度）
-   */
-  public setSearchMode(): void {
-    this.isPluginMode = false
-    console.log('已切换到搜索模式：只允许调整宽度')
-  }
 
   /**
    * 更新焦点目标（供外部调用,如 pluginManager）
@@ -68,19 +58,9 @@ class WindowManager {
   }
 
   /**
-   * 切换到插件模式（允许调整宽度和高度）
-   */
-  public setPluginMode(): void {
-    this.isPluginMode = true
-    console.log('已切换到插件模式：允许调整宽度和高度')
-  }
-
-  /**
    * 通知渲染进程返回搜索页面
-   * 同时切换窗口调整大小模式为搜索模式（只允许调整宽度）
    */
   public notifyBackToSearch(): void {
-    this.setSearchMode()
     this.mainWindow?.webContents.send('back-to-search')
   }
 
@@ -119,23 +99,18 @@ class WindowManager {
     // 智能检测：在鼠标所在的显示器上打开窗口
     const { width, height, x: displayX, y: displayY } = this.getDisplayAtCursor()
 
-    // 从数据库读取保存的窗口宽度
-    const savedWidth = await this.getWindowWidthFromSettings()
-    const windowWidth = savedWidth || WINDOW_WIDTH
-    console.log('创建窗口 - 读取到的保存宽度:', savedWidth, '使用的宽度:', windowWidth)
-
     // 根据平台设置不同的窗口配置
     const windowConfig: Electron.BrowserWindowConstructorOptions = {
       type: 'panel',
       title: 'ZTools',
-      width: windowWidth,
+      width: WINDOW_WIDTH,
       height: WINDOW_INITIAL_HEIGHT,
       alwaysOnTop: true,
       // 基于最大窗口高度计算居中位置，确保窗口扩展时不会超出屏幕
-      x: displayX + Math.floor((width - windowWidth) / 2),
+      x: displayX + Math.floor((width - WINDOW_WIDTH) / 2),
       y: displayY + Math.floor((height - WINDOW_DEFAULT_HEIGHT) / 2),
       frame: false, // 无边框
-      resizable: true, // 允许用户手动调整窗口大小
+      resizable: false, // 禁止用户手动调整窗口大小
       maximizable: false, // 禁用最大化
       skipTaskbar: true,
       show: false,
@@ -161,79 +136,6 @@ class WindowManager {
     }
 
     this.mainWindow = new BrowserWindow(windowConfig)
-
-    // 设置初始模式为搜索模式
-    this.setSearchMode()
-
-    // 监听窗口尺寸调整事件，动态控制可调整的维度
-    this.mainWindow.on('will-resize', (event, newBounds) => {
-      if (!this.mainWindow) return
-
-      const currentBounds = this.mainWindow.getBounds()
-
-      // 统一的宽度限制
-      const minWidth = 700
-      const maxWidth = 1200
-
-      if (!this.isPluginMode) {
-        // 搜索模式：只允许调整宽度，高度保持不变
-        let adjustedWidth = newBounds.width
-
-        // 限制宽度范围
-        if (newBounds.width < minWidth) adjustedWidth = minWidth
-        if (newBounds.width > maxWidth) adjustedWidth = maxWidth
-
-        // 如果高度变化或宽度需要调整，阻止并修正
-        if (newBounds.height !== currentBounds.height || adjustedWidth !== newBounds.width) {
-          event.preventDefault()
-          this.mainWindow.setBounds({
-            x: newBounds.x,
-            y: currentBounds.y,
-            width: adjustedWidth,
-            height: currentBounds.height
-          })
-        }
-
-        // 如果宽度发生变化，保存到数据库（防抖）
-        if (adjustedWidth !== currentBounds.width) {
-          this.debounceSaveWindowWidth(adjustedWidth)
-        }
-      } else {
-        // 插件模式：允许调整宽度和高度
-        const minHeight = 200
-
-        let adjustedWidth = newBounds.width
-        let adjustedHeight = newBounds.height
-
-        // 限制宽度范围
-        if (newBounds.width < minWidth) adjustedWidth = minWidth
-        if (newBounds.width > maxWidth) adjustedWidth = maxWidth
-
-        // 限制高度范围
-        if (newBounds.height < minHeight) adjustedHeight = minHeight
-
-        // 检查是否需要调整尺寸或位置
-        if (
-          adjustedWidth !== newBounds.width ||
-          adjustedHeight !== newBounds.height ||
-          newBounds.y !== currentBounds.y
-        ) {
-          event.preventDefault()
-          // 保持窗口顶部位置不变（y 坐标），只向下扩展
-          this.mainWindow.setBounds({
-            x: newBounds.x,
-            y: currentBounds.y, // 使用当前 y 坐标，保持顶部位置不变
-            width: adjustedWidth,
-            height: adjustedHeight
-          })
-        }
-
-        // 如果宽度发生变化，保存到数据库（防抖）
-        if (adjustedWidth !== currentBounds.width) {
-          this.debounceSaveWindowWidth(adjustedWidth)
-        }
-      }
-    })
 
     // Windows 11 根据用户配置设置背景材质
     if (platform.isWindows) {
@@ -585,9 +487,8 @@ class WindowManager {
       x = savedPosition.x
       y = savedPosition.y
     } else {
-      // 计算默认居中位置（基于最大窗口高度和实际窗口宽度）
-      const [windowWidth] = this.mainWindow.getSize()
-      x = displayX + Math.floor((width - windowWidth) / 2)
+      // 计算默认居中位置（基于最大窗口高度）
+      x = displayX + Math.floor((width - WINDOW_WIDTH) / 2)
       y = displayY + Math.floor((height - WINDOW_DEFAULT_HEIGHT) / 2)
     }
 
@@ -888,54 +789,6 @@ class WindowManager {
     } catch (error) {
       console.error('获取窗口材质失败:', error)
       return getDefaultWindowMaterial()
-    }
-  }
-
-  /**
-   * 从数据库获取保存的窗口宽度
-   */
-  private async getWindowWidthFromSettings(): Promise<number | null> {
-    try {
-      const settings = await databaseAPI.dbGet('settings-general')
-      const windowWidth = settings?.windowWidth as number | null
-      console.log('从数据库读取窗口宽度 - settings:', settings, 'windowWidth:', windowWidth)
-      return windowWidth
-    } catch (error) {
-      console.error('读取窗口宽度配置失败:', error)
-      return null
-    }
-  }
-
-  /**
-   * 保存窗口宽度到数据库（带防抖）
-   */
-  private debounceSaveWindowWidth(width: number): void {
-    // 清除之前的定时器
-    if (this.saveWindowWidthTimer) {
-      clearTimeout(this.saveWindowWidthTimer)
-    }
-
-    // 设置新的定时器，500ms 后保存
-    this.saveWindowWidthTimer = setTimeout(async () => {
-      await this.saveWindowWidth(width)
-      this.saveWindowWidthTimer = null
-    }, 500)
-  }
-
-  /**
-   * 保存窗口宽度到数据库
-   */
-  private async saveWindowWidth(width: number): Promise<void> {
-    try {
-      const settings = await databaseAPI.dbGet('settings-general')
-      const updatedSettings = {
-        ...(settings || {}),
-        windowWidth: width
-      }
-      await databaseAPI.dbPut('settings-general', updatedSettings)
-      console.log('窗口宽度已保存到数据库:', width)
-    } catch (error) {
-      console.error('保存窗口宽度失败:', error)
     }
   }
 

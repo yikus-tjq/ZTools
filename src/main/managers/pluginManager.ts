@@ -14,6 +14,7 @@ import pluginWindowManager from '../core/pluginWindowManager'
 import { registerIconProtocolForSession } from '../index'
 import proxyManager from './proxyManager'
 import devToolsShortcut from '../utils/devToolsShortcut'
+import windowManager from './windowManager'
 
 console.log('mainPreload', mainPreload)
 
@@ -30,7 +31,6 @@ interface PluginViewInfo {
 }
 class PluginManager {
   private mainWindow: BrowserWindow | null = null
-  private windowManager: any = null // 窗口管理器实例
   private pluginView: WebContentsView | null = null
   private currentPluginPath: string | null = null
   private pluginViews: Array<PluginViewInfo> = []
@@ -53,9 +53,8 @@ class PluginManager {
     this.pluginDefaultHeight = Math.max(200, height) // 最小 200px
   }
 
-  public init(mainWindow: BrowserWindow, windowManager?: any): void {
+  public init(mainWindow: BrowserWindow): void {
     this.mainWindow = mainWindow
-    this.windowManager = windowManager
   }
 
   // 创建或更新插件视图
@@ -101,11 +100,6 @@ class PluginManager {
       }
 
       this.currentPluginPath = pluginPath
-
-      // 切换到插件模式
-      if (this.windowManager) {
-        this.windowManager.setPluginMode()
-      }
 
       // 读取插件配置以获取logo和name
       try {
@@ -213,9 +207,7 @@ class PluginManager {
       // 监听插件视图的焦点事件,实时跟踪焦点状态
       this.pluginView.webContents.on('focus', () => {
         console.log('插件视图 webContents 获得焦点')
-        if (this.windowManager) {
-          this.windowManager.updateFocusTarget('plugin')
-        }
+        windowManager.updateFocusTarget('plugin')
         // 注册开发者工具快捷键
         if (this.pluginView && !this.pluginView.webContents.isDestroyed()) {
           devToolsShortcut.register(this.pluginView.webContents)
@@ -276,7 +268,7 @@ class PluginManager {
         // 如果是当前显示的插件，隐藏并返回搜索页面
         if (this.currentPluginPath === pluginPath) {
           this.hidePluginView()
-          this.windowManager?.notifyBackToSearch()
+          windowManager.notifyBackToSearch()
           this.currentPluginPath = null
           console.log('插件崩溃，已返回搜索页面')
         }
@@ -324,11 +316,6 @@ class PluginManager {
       }
       this.pluginViews.push(pluginInfo)
       this.currentPluginPath = pluginPath
-
-      // 切换到插件模式
-      if (this.windowManager) {
-        this.windowManager.setPluginMode()
-      }
 
       // 提前通知渲染进程插件已打开
       this.mainWindow?.webContents.send('plugin-opened', {
@@ -396,11 +383,6 @@ class PluginManager {
       // 将当前引用清空，但缓存仍保留
       this.pluginView = null
       this.currentPluginPath = null
-
-      // 切换回搜索模式
-      if (this.windowManager) {
-        this.windowManager.setSearchMode()
-      }
 
       // 通知渲染进程插件已关闭
       this.mainWindow.webContents.send('plugin-closed')
@@ -553,7 +535,7 @@ class PluginManager {
     const success = this.killPlugin(pluginPath)
 
     if (success && this.mainWindow) {
-      this.windowManager?.notifyBackToSearch()
+      windowManager.notifyBackToSearch()
       // 主窗口获取焦点
       this.mainWindow.webContents.focus()
       console.log('已终止插件并返回搜索页面')
@@ -804,7 +786,7 @@ class PluginManager {
     this.lastPluginEscTime = Date.now()
     console.log('插件按下 ESC 键 (Main Process)，返回搜索页面')
     this.hidePluginView()
-    this.windowManager?.notifyBackToSearch()
+    windowManager.notifyBackToSearch()
     // 主窗口获取焦点
     this.mainWindow?.webContents.focus()
   }
@@ -1098,7 +1080,7 @@ class PluginManager {
 
       // 通知渲染进程插件已关闭
       this.mainWindow.webContents.send('plugin-closed')
-      this.windowManager?.notifyBackToSearch()
+      windowManager.notifyBackToSearch()
 
       // 清空当前引用
       this.pluginView = null
